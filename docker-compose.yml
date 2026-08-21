@@ -155,3 +155,28 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
       --no-language-model-only
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vllm-prometheus
+    restart: unless-stopped
+    network_mode: host
+    # ports:
+    #  - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yaml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vllm-grafana
+    restart: unless-stopped
+    network_mode: host
+    # ports:
+    #  - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      GF_SERVER_HTTP_PORT: "3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
