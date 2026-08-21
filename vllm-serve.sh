@@ -32,20 +32,19 @@ load_env() {
     source "${ENV_FILE}"
 }
 
-get_profile() {
+get_service() {
     case "${MODEL_ID:-}" in
-        nvidia/*)  echo "nvidia" ;;
-        unsloth/*) echo "unsloth" ;;
-        *) echo "Error: Unknown MODEL_ID prefix '${MODEL_ID}'. Expected nvidia/* or unsloth/*." >&2; exit 1 ;;
+        nvidia/Qwen3.6-27B*)              echo "vllm-nv-qwen3.6-27B-NVFP4" ;;
+        unsloth/Qwen3.6-27B*)             echo "vllm-uns-qwen3.6-27B-NVFP4" ;;
+        nvidia/Qwen3.6-35B-A3B*)          echo "vllm-nv-qwen3.6-35B-A3B-NVFP4" ;;
+        unsloth/Qwen3.6-35B-A3B-NVFP4-Fast) echo "vllm-uns-qwen3.6-35B-A3B-NVFP4-fast" ;;
+        unsloth/Qwen3.6-35B-A3B*)         echo "vllm-uns-qwen3.6-35B-A3B-NVFP4" ;;
+        *) echo "Error: Unknown MODEL_ID '${MODEL_ID}'." >&2; exit 1 ;;
     esac
 }
 
-get_service() {
-    case "${MODEL_ID:-}" in
-        nvidia/*)  echo "vllm-qwen3.6-35B-A3B-NVFP4" ;;
-        unsloth/*) echo "vllm-qwen3.6-35B-A3B-NVFP4-unsloth" ;;
-        *) echo "Error: Unknown MODEL_ID prefix '${MODEL_ID}'." >&2; exit 1 ;;
-    esac
+get_profile() {
+    get_service
 }
 
 cmd_select() {
