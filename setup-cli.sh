@@ -7,8 +7,7 @@ HF_CLI_BIN="${HOME}/.local/bin/hf"
 HF_CLI_DIR="${HF_HOME:+${HF_HOME}/cli}"
 HF_CLI_DIR="${HF_CLI_DIR:-${HOME}/.hf-cli}"
 
-PI_BIN="${HOME}/.local/bin/pi"
-PI_VERSIONS_DIR="${HOME}/.local/share/pi"
+
 
 ## Hugging Face CLI
 # Source: https://huggingface.co/docs/huggingface_hub/en/guides/cli
@@ -49,24 +48,21 @@ cmd_pi_install() {
 }
 
 cmd_pi_check() {
-    if [[ -x "${PI_BIN}" ]]; then
-        echo "pi agent CLI found at ${PI_BIN}"
-        "${PI_BIN}" --version
+    if command -v pi &>/dev/null; then
+        echo "pi agent CLI found"
+        pi --version
     else
-        echo "pi agent CLI not installed (expected at ${PI_BIN})."
+        echo "pi agent CLI not installed."
         exit 1
     fi
 }
 
 cmd_pi_update() {
-    "${PI_BIN}" update
+    pi update
 }
 
 cmd_pi_uninstall() {
-    rm -f "${PI_BIN}"
-    rm -rf "${PI_VERSIONS_DIR}"
-    echo "Removed ${PI_BIN} and ${PI_VERSIONS_DIR}"
-    echo "Note: ~/.pi (config, credentials, history) was left in place."
+    npm uninstall -g @earendil-works/pi-coding-agent
 }
 
 usage() {
