@@ -69,8 +69,14 @@ cmd_select() {
 
 cmd_download() {
     load_env
-    hf auth login
+    if [[ -z "${HF_TOKEN:-}" ]]; then
+        echo "Error: HF_TOKEN not set in ${ENV_FILE}." >&2
+        exit 1
+    fi
+    hf auth login --token "${HF_TOKEN}"
     hf download "${MODEL_ID}"
+    unset HF_TOKEN
+    hf auth logout
 }
 
 cmd_start() {
