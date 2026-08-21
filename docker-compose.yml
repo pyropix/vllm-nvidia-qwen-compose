@@ -49,6 +49,7 @@ services:
       --tool-call-parser qwen3_coder
       --reasoning-parser qwen3
       --no-language-model-only
+      --override-generation-config '{"temperature":0.6,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0}'
       --default-chat-template-kwargs '{"enable_thinking": true}'
       --chat-template /root/chat_template.jinja
 
@@ -63,8 +64,7 @@ services:
       --tensor-parallel-size "1"
       --trust-remote-code
       --kv-cache-dtype auto
-      --moe-backend flashinfer_b12x
-      --linear-backend flashinfer_b12x
+      --moe-backend marlin
       --gpu-memory-utilization "0.4"
       --max-model-len "262144"
       --max-num-batched-tokens "8192"
@@ -77,6 +77,7 @@ services:
       --tool-call-parser qwen3_coder
       --reasoning-parser qwen3
       --no-language-model-only
+      --override-generation-config '{"temperature":0.6,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0}'
       --default-chat-template-kwargs '{"enable_thinking": true}'
       --chat-template /root/chat_template.jinja
 
@@ -106,6 +107,7 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
       --no-language-model-only
+      --override-generation-config '{"temperature":0.6,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0}'
       --chat-template /root/chat_template.jinja
 
   vllm-uns-qwen3.6-35B-A3B-NVFP4:
@@ -133,6 +135,7 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
       --no-language-model-only
+      --override-generation-config '{"temperature":0.6,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0}'
       --chat-template /root/chat_template.jinja
 
   vllm-uns-qwen3.6-35B-A3B-NVFP4-fast:
@@ -160,6 +163,7 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
       --no-language-model-only
+      --override-generation-config '{"temperature":0.6,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0}'
       --chat-template /root/chat_template.jinja
 
   prometheus:
