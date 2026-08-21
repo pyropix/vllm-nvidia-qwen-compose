@@ -33,12 +33,28 @@ load_env() {
 }
 
 get_service() {
-    case "${MODEL_ID:-}" in
-        nvidia/Qwen3.6-27B*)              echo "vllm-nv-qwen3.6-27B-NVFP4" ;;
-        nvidia/Qwen3.6-35B-A3B*)          echo "vllm-nv-qwen3.6-35B-A3B-NVFP4" ;;
-        unsloth/Qwen3.8-27B-NVFP4*)       echo "vllm-nv-qwen3.8-27B-NVFP4" ;;
-        *) echo "Error: Unknown MODEL_ID '${MODEL_ID}'." >&2; exit 1 ;;
-    esac
+    local model_id="${MODEL_ID:-}"
+    if [[ -z "${model_id}" ]]; then
+        echo "Error: MODEL_ID is not set. Run '$(basename "$0") select' first." >&2
+        exit 1
+    fi
+    # Derive the docker-compose service/profile name from the Hugging Face
+    # MODEL_ID: strip the org prefix (before the first '/'), lowercase the
+    # leading character and prefix with 'vllm-nv-'.
+    #   e.g. nvidia/Qwen3.6-27B-NVFP4 -> vllm-nv-qwen3.6-27B-NVFP4
+    # Any model listed in models.conf must follow this convention.
+    local name="${model_id#*/}"
+    local first="${name:0:1}"
+    first="${first,,}"
+    local service="vllm-nv-${first}${name:1}"
+    # Guard against a derived name that has no matching compose service.
+    local escaped="${service//./\\.}"
+    if ! grep -Eq "^[[:space:]]+${escaped}:" "${SCRIPT_DIR}/docker-compose.yml"; then
+        echo "Error: no docker-compose service '${service}' for MODEL_ID '${model_id}'." >&2
+        echo "Add a matching service to docker-compose.yml or fix the naming convention." >&2
+        exit 1
+    fi
+    echo "${service}"
 }
 
 get_profile() {
