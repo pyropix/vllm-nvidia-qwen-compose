@@ -30,9 +30,9 @@ This directory is its own git repository, nested inside the parent
 ## Workflow
 
 One-time setup (run once per machine — from this directory):
-- `./setup-cli.sh` — install/manage the Hugging Face CLI and Claude Code CLI (`hf-install|hf-reinstall|hf-with-transformers|hf-check|hf-uninstall|claude-install|claude-check|claude-uninstall`, no args → interactive menu)
+- `./setup-cli.sh` — install/manage the Hugging Face CLI and Claude Code CLI (`hf-install|hf-reinstall|hf-with-transformers|hf-check|hf-uninstall|claude-install|claude-check|claude-update|claude-uninstall`, no args → interactive menu)
 
-Day-to-day via `./vllm-serve.sh [select|download|start|logs|stop|claude]` (no args → interactive menu)
+Day-to-day via `./vllm-serve.sh [select|download|start|logs|stop|claude|link|unlink]` (no args → interactive menu)
 
 | Command | Description |
 |---------|-------------|
@@ -43,12 +43,15 @@ Day-to-day via `./vllm-serve.sh [select|download|start|logs|stop|claude]` (no ar
 | `./vllm-serve.sh logs` | Tail container logs |
 | `./vllm-serve.sh stop` | Stop and remove the container |
 | `./vllm-serve.sh claude` | Launch Claude Code pointed at local vLLM server |
+| `./vllm-serve.sh link` | Symlink this script as `vllm-serve` in `~/.local/bin` |
+| `./vllm-serve.sh unlink` | Remove that symlink |
 
 ## Config
 - Copy `.env.vllm.example` → `.env.vllm`, set `HF_TOKEN` and `MODEL_ID`
-- `models.conf` lists the model IDs offered by `./vllm-serve.sh select`; add a line to make a new variant selectable
+- `models.conf` lists the model IDs offered by `./vllm-serve.sh select`; currently includes 35B and 27B variants for both `nvidia/*` and `unsloth/*`, plus `unsloth/Qwen3.6-35B-A3B-NVFP4-Fast`. Add a line to make a new variant selectable
 - `MODEL_ID` prefix determines compose profile: `nvidia/*` → profile `nvidia`, `unsloth/*` → profile `unsloth`
 - Profiles are selected automatically by `./vllm-serve.sh start`; manual `docker compose` requires `--profile nvidia` or `--profile unsloth`
+- **Gotcha:** `docker-compose.yml` defines only two services, both named for the 35B model (`vllm-qwen3.6-35B-A3B-NVFP4[-unsloth]`). Selecting a 27B variant from `models.conf` still runs/logs under that same 35B-named service — the container serves the correct `MODEL_ID`, but `./vllm-serve.sh logs`/`docker ps` output will show the 35B name regardless.
 - Served at `http://localhost:8000` as `qwen3.6-35B-A3B-NVFP4` (OpenAI-compatible)
 - `--gpu-memory-utilization 0.4`, `--max-model-len 262144`, `--max-num-seqs 4`
 - Tool use: `--tool-call-parser qwen3_xml --enable-auto-tool-choice`
@@ -62,8 +65,8 @@ Point Claude Code at the local vLLM server:
 ./vllm-serve.sh claude
 ```
 
-Sets `ANTHROPIC_BASE_URL=http://localhost:8000` and `ANTHROPIC_API_KEY=vllm`,
-allowing you to use the local model as the `--model` target.
+Sets `ANTHROPIC_BASE_URL=http://localhost:8000`, `ANTHROPIC_API_KEY=vllm`, and
+`ANTHROPIC_AUTH_TOKEN=vllm`, allowing you to use the local model as the `--model` target.
 
 ## Verify Server
 

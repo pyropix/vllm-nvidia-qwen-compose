@@ -1,6 +1,6 @@
 # vLLM NVidea Qwen3.6 Compose
 
-Runs the Qwen3.6-35B-A3B-NVFP4 model as an OpenAI-compatible inference server using [vLLM](https://github.com/vllm-project/vllm) on DGX Spark. The model is downloaded from Hugging Face and served locally with GPU acceleration (NVIDIA, ARM64/aarch64).
+Runs Qwen3.6 models as an OpenAI-compatible inference server using [vLLM](https://github.com/vllm-project/vllm) on DGX Spark. The selected model variant is downloaded from Hugging Face and served locally with GPU acceleration (NVIDIA, ARM64/aarch64).
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ Runs the Qwen3.6-35B-A3B-NVFP4 model as an OpenAI-compatible inference server us
 2. Install the Hugging Face CLI (and, optionally, Claude Code):
 
    ```bash
-   ./setup-cli.sh              # interactive menu
+   ./setup-cli.sh                 # interactive menu
    ./setup-cli.sh hf-install      # one-shot: install the `hf` CLI
    ./setup-cli.sh claude-install  # one-shot: install the Claude Code CLI
    ```
@@ -25,7 +25,7 @@ Runs the Qwen3.6-35B-A3B-NVFP4 model as an OpenAI-compatible inference server us
 3. Pick a model variant and start the server:
 
    ```bash
-   ./vllm-serve.sh      # interactive menu
+   ./vllm-serve.sh           # interactive menu
    ./vllm-serve.sh download  # one-shot: download model weights
    ./vllm-serve.sh start     # one-shot: pull image and start the container
    ```
@@ -39,34 +39,35 @@ Run without arguments for an interactive menu, or pass a subcommand directly:
 ```
 
 | Subcommand             | What it does                                                        |
-| ----------------------- | -------------------------------------------------------------------- |
-| `hf-install`            | Installs the Hugging Face CLI (reuses an existing venv if present).  |
-| `hf-reinstall`          | Recreates the Hugging Face CLI virtual environment (`--force`).      |
-| `hf-with-transformers`  | Installs the Hugging Face CLI with the `transformers` extra.         |
-| `hf-check`              | Shows whether the `hf` CLI is installed and its version.             |
-| `hf-uninstall`          | Removes the `hf` CLI and its virtual environment.                    |
-| `claude-install`        | Installs the Claude Code CLI.                                        |
-| `claude-check`          | Shows whether the Claude Code CLI is installed and its version.      |
-| `claude-update`         | Updates the Claude Code CLI to the latest version.                   |
-| `claude-uninstall`      | Removes the Claude Code CLI (keeps `~/.claude` config/credentials).  |
+| ---------------------- | ------------------------------------------------------------------- |
+| `hf-install`           | Installs the Hugging Face CLI (reuses an existing venv if present). |
+| `hf-reinstall`         | Recreates the Hugging Face CLI virtual environment (`--force`).     |
+| `hf-with-transformers` | Installs the Hugging Face CLI with the `transformers` extra.        |
+| `hf-check`             | Shows whether the `hf` CLI is installed and its version.            |
+| `hf-uninstall`         | Removes the `hf` CLI and its virtual environment.                   |
+| `claude-install`       | Installs the Claude Code CLI.                                       |
+| `claude-check`         | Shows whether the Claude Code CLI is installed and its version.     |
+| `claude-update`        | Updates the Claude Code CLI to the latest version.                  |
+| `claude-uninstall`     | Removes the Claude Code CLI (keeps `~/.claude` config/credentials). |
 
 ## vllm-serve.sh — day-to-day management
 
 Run without arguments for an interactive menu, or pass a subcommand directly:
 
 ```bash
-./vllm-serve.sh [select|download|start|logs|stop|claude|link]
+./vllm-serve.sh [select|download|start|logs|stop|claude|link|unlink]
 ```
 
-| Subcommand   | What it does                                                                                              |
-| ------------ | --------------------------------------------------------------------------------------------------------- |
-| `select`     | Interactive menu to pick the model variant (from `models.conf`); writes `MODEL_ID` to `.env.vllm`.        |
-| `download`   | Downloads the model weights (`hf download`) into the local Hugging Face cache.                            |
-| `start`      | Pulls the latest `vllm-openai` Docker image and starts the vLLM service in the background.                |
-| `logs`       | Tails/follows the logs of the running vLLM container.                                                     |
-| `stop`       | Stops and removes the vLLM service and any orphaned containers.                                           |
-| `claude`     | Launches Claude Code with `ANTHROPIC_BASE_URL` pointed at the local vLLM server, using `--model ${MODEL_ID}`. |
-| `link`       | Symlinks this script as `vllm-serve` in `~/.local/bin`, so it can be run directly as `vllm-serve` from anywhere. |
+| Subcommand | What it does                                                                                                                                             |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `select`   | Interactive menu to pick the model variant (from `models.conf`); writes `MODEL_ID` to `.env.vllm`.                                                       |
+| `download` | Downloads the model weights (`hf download`) into the local Hugging Face cache.                                                                           |
+| `start`    | Pulls the latest `vllm-openai` Docker image and starts the vLLM service in the background.                                                               |
+| `logs`     | Tails/follows the logs of the running vLLM container.                                                                                                    |
+| `stop`     | Stops and removes the vLLM service and any orphaned containers.                                                                                          |
+| `claude`   | Launches Claude Code with `ANTHROPIC_BASE_URL`/`ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` pointed at the local vLLM server, using `--model ${MODEL_ID}`. |
+| `link`     | Symlinks this script as `vllm-serve` in `~/.local/bin`, so it can be run directly as `vllm-serve` from anywhere.                                         |
+| `unlink`   | Removes that symlink from `~/.local/bin`.                                                                                                                |
 
 ### Profiles
 
@@ -75,23 +76,11 @@ The `docker-compose.yml` defines two **profiles**, selected automatically based 
 - `nvidia/*` → profile `nvidia` — uses `--load-format fastsafetensors` and `--speculative-config` with `moe_backend: triton`.
 - `unsloth/*` → profile `unsloth` — requires `CUTE_DSL_ARCH=sm_121a`, uses fewer speculative tokens and no `moe_backend` key.
 
+`docker-compose.yml` only defines one service per profile, and both are named for the 35B model (`vllm-qwen3.6-35B-A3B-NVFP4[-unsloth]`). Selecting a 27B variant from `models.conf` still runs under that same service name — the container serves the correct `MODEL_ID`, but `./vllm-serve.sh logs` / `docker ps` output will show the 35B name regardless of which size is actually running.
+
 ## Configuration
 
 The service configuration lives in `docker-compose.yml`. The container listens on port `8000` and exposes an OpenAI-compatible API.
-
-Key parameters (all containers):
-
-| Parameter              | Value      | Meaning                                          |
-| ---------------------- | ---------- | ------------------------------------------------ |
-| `--gpu-memory-utilization` | `0.4`  | Fraction of GPU memory reserved for the model    |
-| `--max-model-len`      | `262144`   | Maximum context length in tokens (256K)          |
-| `--max-num-seqs`       | `4`        | Maximum concurrent sequences                     |
-| `--max-num-batched-tokens` | `8192` | Maximum tokens per prefill batch                 |
-| `--kv-cache-dtype`     | `fp8`      | KV cache quantization                              |
-| `--attention-backend`  | `flashinfer` | Attention kernel backend                       |
-| `--moe-backend`        | `marlin`   | MoE routing backend                              |
-| `--reasoning-parser`   | `qwen3`    | Enable chain-of-thought reasoning output         |
-| `--tool-call-parser`   | `qwen3_xml` | Structured tool-calling format                  |
 
 ## Usage examples
 
@@ -128,10 +117,15 @@ export ANTHROPIC_API_KEY=vllm
 
 The list of models offered by `./vllm-serve.sh select` is defined in [`models.conf`](models.conf) — one `MODEL_ID` per line. To add a new variant, add a line there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
 
-| Variant | Hugging Face | Notes |
-| ------- | ------------ | ----- |
-| **nvidia** | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4) | `--load-format fastsafetensors`, `moe_backend: triton` for speculative decoding |
-| **unsloth** | [unsloth/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-NVFP4) | Requires `CUTE_DSL_ARCH=sm_121a`; slightly more conservative speculative config |
+| Variant                 | Hugging Face                                                                          | Notes                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **nvidia** (35B)        | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4)   | `--load-format fastsafetensors`, `moe_backend: triton` for speculative decoding |
+| **unsloth** (35B)       | [unsloth/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-NVFP4) | Requires `CUTE_DSL_ARCH=sm_121a`; slightly more conservative speculative config |
+| **unsloth** (35B, Fast) | unsloth/Qwen3.6-35B-A3B-NVFP4-Fast                                                    | Same unsloth profile/flags as above, different weight variant                   |
+| **nvidia** (27B)        | nvidia/Qwen3.6-27B-NVFP4                                                              | Same nvidia profile/flags as the 35B variant, smaller model                     |
+| **unsloth** (27B)       | unsloth/Qwen3.6-27B-NVFP4                                                             | Same unsloth profile/flags as the 35B variant, smaller model                    |
+
+All five are listed in [`models.conf`](models.conf) and selectable via `./vllm-serve.sh select`. Note the [service-naming gotcha](#profiles) above: 27B variants still run under the 35B-named container.
 
 ## License
 
