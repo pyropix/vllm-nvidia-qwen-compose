@@ -1,5 +1,5 @@
 {
-  "defaultModel": "nvidia/Qwen3.6-35B-A3B-NVFP4",
+  "defaultModel": "unsloth/Qwen3.8-27B-NVFP4",
   "defaultProvider": "vllm",
   "packages": [
     "npm:@ollama/pi-web-search"

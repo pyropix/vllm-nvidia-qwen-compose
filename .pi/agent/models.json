@@ -5,8 +5,8 @@
       "apiKey": "vllm",
       "api": "openai-completions",
       "models": [
-        { 
-          "id": "nvidia/Qwen3.6-27B-A3B-NVFP4",
+        {
+          "id": "nvidia/Qwen3.6-27B-NVFP4",
           "contextWindow": 262144,
           "input": [
             "text",
@@ -14,16 +14,7 @@
           ],
           "reasoning": true
         },
-        { 
-          "id": "unsloth/Qwen3.6-27B-NVFP4",
-          "contextWindow": 262144,
-          "input": [
-            "text",
-            "image"
-          ],
-          "reasoning": true
-        },
-        { 
+        {
           "id": "nvidia/Qwen3.6-35B-A3B-NVFP4",
           "contextWindow": 262144,
           "input": [
@@ -32,17 +23,8 @@
           ],
           "reasoning": true
         },
-        { 
-          "id": "unsloth/Qwen3.6-35B-A3B-NVFP4",
-          "contextWindow": 262144,
-          "input": [
-            "text",
-            "image"
-          ],
-          "reasoning": true
-        },
-        { 
-          "id": "unsloth/Qwen3.6-35B-A3B-NVFP4-Fast",
+        {
+          "id": "unsloth/Qwen3.8-27B-NVFP4",
           "contextWindow": 262144,
           "input": [
             "text",
