@@ -121,9 +121,9 @@ The list of models offered by `./vllm-serve.sh select` is defined in [`models.co
 | ----------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | **nvidia** (35B)        | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4)   | `--load-format fastsafetensors`, `moe_backend: triton` for speculative decoding |
 | **unsloth** (35B)       | [unsloth/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-NVFP4) | Requires `CUTE_DSL_ARCH=sm_121a`; slightly more conservative speculative config |
-| **unsloth** (35B, Fast) | unsloth/Qwen3.6-35B-A3B-NVFP4-Fast                                                    | Same unsloth profile/flags as above, different weight variant                   |
-| **nvidia** (27B)        | nvidia/Qwen3.6-27B-NVFP4                                                              | Same nvidia profile/flags as the 35B variant, smaller model                     |
-| **unsloth** (27B)       | unsloth/Qwen3.6-27B-NVFP4                                                             | Same unsloth profile/flags as the 35B variant, smaller model                    |
+| **unsloth** (35B, Fast) | [unsloth/Qwen3.6-35B-A3B-NVFP4-Fast](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-NVFP4-Fast) | Same unsloth profile/flags as above, different weight variant                   |
+| **nvidia** (27B)        | [nvidia/Qwen3.6-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)           | Same nvidia profile/flags as the 35B variant, smaller model                     |
+| **unsloth** (27B)       | [unsloth/Qwen3.6-27B-NVFP4](https://huggingface.co/unsloth/Qwen3.6-27B-NVFP4)         | Same unsloth profile/flags as the 35B variant, smaller model                    |
 
 All five are listed in [`models.conf`](models.conf) and selectable via `./vllm-serve.sh select`. Note the [service-naming gotcha](#profiles) above: 27B variants still run under the 35B-named container.
 
