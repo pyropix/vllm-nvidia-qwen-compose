@@ -1,7 +1,7 @@
 # vLLM
 
-`docker-compose.yml` serves Qwen3.6 models from `models.conf`
-Endpoint: http://localhost:8000/v1/models`
+`docker-compose.yml` serves Qwen3.x models from `models.conf` (currently `nvidia/Qwen3.6-27B-NVFP4`, `nvidia/Qwen3.6-35B-A3B-NVFP4`, `unsloth/Qwen3.8-27B-NVFP4`)
+Endpoint: http://localhost:8000/v1/models
 
 ## Hardware Platform
 

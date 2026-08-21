@@ -71,16 +71,17 @@ Run without arguments for an interactive menu, or pass a subcommand directly:
 
 ### Profiles
 
-Each `MODEL_ID` in `models.conf` has its own compose service/profile of the same name, prefixed `vllm-nv-` — e.g. `vllm-nv-qwen3.6-27B-NVFP4`, `vllm-nv-qwen3.6-35B-A3B-NVFP4`. `./vllm-serve.sh` maps `MODEL_ID` to the matching service/profile automatically; manual `docker compose` requires `--profile <service-name>`.
+Each `MODEL_ID` in `models.conf` has its own compose service/profile of the same name, prefixed `vllm-nv-` — e.g. `vllm-nv-qwen3.6-27B-NVFP4`, `vllm-nv-qwen3.6-35B-A3B-NVFP4`, `vllm-nv-qwen3.8-27B-NVFP4`. `./vllm-serve.sh` maps `MODEL_ID` to the matching service/profile automatically; manual `docker compose` requires `--profile <service-name>`.
 
-All services share `--dtype auto --quantization modelopt` plus `CUTE_DSL_ARCH=sm_121a`, `FLASHINFER_DISABLE_VERSION_CHECK=1`, and `VLLM_MARLIN_USE_ATOMIC_ADD=1` (set once in `docker-compose.yml`'s `x-defaults`), a mounted custom chat template (`--chat-template`, see [Chat template fix](#chat-template-fix) below), and an `--override-generation-config` with the model's recommended sampling defaults (`temperature 0.6`, `top_p 0.95`, `top_k 20`, `min_p 0.0`).
+All services share `CUTE_DSL_ARCH=sm_121a`, `FLASHINFER_DISABLE_VERSION_CHECK=1`, and `VLLM_MARLIN_USE_ATOMIC_ADD=1` (set once in `docker-compose.yml`'s `x-defaults`), `--enable-chunked-prefill --enable-prefix-caching --load-format fastsafetensors`, a `--speculative-config` (MTP, 3 tokens, `moe_backend: triton`), and an `--override-generation-config` with the model's recommended sampling defaults (`temperature 0.6`, `top_p 0.95`, `top_k 20`, `min_p 0.0`). The Qwen3.6 services additionally use the mounted custom chat template (`--chat-template`, see [Chat template fix](#chat-template-fix) below) and `--default-chat-template-kwargs '{"enable_thinking": false, "enable_tool_call": true, "enable_tool_call_streaming": true}'`.
 
-- **35B-A3B** uses `--kv-cache-dtype fp8 --attention-backend flashinfer --tool-call-parser qwen3_xml --moe-backend marlin --async-scheduling` and `--speculative-config` with `moe_backend: triton`.
-- **27B** uses `--moe-backend marlin`, `--tool-call-parser qwen3_coder`, `--default-chat-template-kwargs '{"enable_thinking": true}'`, and `--speculative-config` with `moe_backend: triton`.
+- **35B-A3B** uses `--kv-cache-dtype fp8 --attention-backend flashinfer --tool-call-parser qwen3_xml --moe-backend marlin --async-scheduling`.
+- **27B** uses `--moe-backend marlin --kv-cache-dtype auto --tool-call-parser qwen3_coder --reasoning-parser qwen3`.
+- **Qwen3.8-27B** (unsloth) uses `--tool-call-parser qwen3_coder --reasoning-parser qwen3`, DSpark speculative decoding (`--speculative-config` with the draft model `Doopeworld/Qwen3.8-27B-DSpark-vLLM`, 7 tokens, probabilistic draft sampling), and a 1M-token YaRN context extension (`--max-model-len 1048576` via `--hf-overrides`, `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1`).
 
 ### Chat template fix
 
-`fix-qwen3.6-chat-template/chat_template.jinja` is a custom chat template mounted read-only into every vLLM container (`/root/chat_template.jinja`) and passed via `--chat-template`, fixing an issue with the stock Qwen3.6 template in reasoning mode.
+`fix-qwen3.6-chat-template/chat_template.jinja` is a custom chat template mounted read-only into every vLLM container (`/root/chat_template.jinja`) and passed via `--chat-template` by the Qwen3.6 services, fixing an issue with the stock Qwen3.6 template in reasoning mode.
 
 ## Configuration
 
@@ -133,12 +134,13 @@ curl http://localhost:8000/metrics   # raw vLLM metrics
 
 The list of models offered by `./vllm-serve.sh select` is defined in [`models.conf`](models.conf) — one `MODEL_ID` per line. To add a new variant, add a line there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
 
-| Variant          | Hugging Face                                                                          | Notes                                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **nvidia** (35B) | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4) | `moe_backend: triton` for speculative decoding, `--async-scheduling`                               |
-| **nvidia** (27B) | [nvidia/Qwen3.6-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)         | `marlin` MoE backend, `qwen3_coder` tool parser, `moe_backend: triton` for speculative decoding   |
+| Variant                      | Hugging Face                                                                          | Notes                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Qwen3.6** 35B-A3B (nvidia) | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4)   | `moe_backend: triton` for speculative decoding, `--async-scheduling`                               |
+| **Qwen3.6** 27B (nvidia)     | [nvidia/Qwen3.6-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)           | `marlin` MoE backend, `qwen3_coder` tool parser, `moe_backend: triton` for speculative decoding    |
+| **Qwen3.8** 27B (unsloth)    | [unsloth/Qwen3.8-27B-NVFP4](https://huggingface.co/unsloth/Qwen3.8-27B-NVFP4)         | DSpark speculative decoding, 1M-token YaRN context extension                                       |
 
-Both are listed in [`models.conf`](models.conf) and selectable via `./vllm-serve.sh select`. Each has its own compose service/profile (see [Profiles](#profiles) above).
+All three are listed in [`models.conf`](models.conf) and selectable via `./vllm-serve.sh select`. Each has its own compose service/profile (see [Profiles](#profiles) above).
 
 ## License
 
