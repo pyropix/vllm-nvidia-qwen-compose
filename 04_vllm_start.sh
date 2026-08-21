@@ -11,17 +11,25 @@ if [[ -z "${MODEL_ID:-}" ]]; then
     exit 1
 fi
 
-if [[ "${MODEL_ID}" == unsloth/* ]]; then
-    echo "WARNING: unsloth model selected. MTP speculative decoding in docker-compose.yml" >&2
-    echo "may not be supported. Disable --speculative-config if vLLM fails to start." >&2
+if [[ "${MODEL_ID}" == nvidia/* ]]; then
+    COMPOSE_PROFILE="nvidia"
+elif [[ "${MODEL_ID}" == unsloth/* ]]; then
+    COMPOSE_PROFILE="unsloth"
+else
+    echo "Error: Unknown MODEL_ID prefix '${MODEL_ID}'. Expected nvidia/* or unsloth/*." >&2
+    exit 1
 fi
+
+echo "Using profile: ${COMPOSE_PROFILE}"
 
 docker compose \
     --project-directory "${SCRIPT_DIR}" \
     --env-file "${SCRIPT_DIR}/.env.vllm" \
+    --profile "${COMPOSE_PROFILE}" \
     pull
 
 docker compose \
     --project-directory "${SCRIPT_DIR}" \
     --env-file "${SCRIPT_DIR}/.env.vllm" \
+    --profile "${COMPOSE_PROFILE}" \
     up --detach --remove-orphans

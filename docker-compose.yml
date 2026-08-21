@@ -3,6 +3,7 @@
 #
 services:
   vllm-qwen3.6-35B-A3B-NVFP4:
+    profiles: [nvidia]
     image: vllm/vllm-openai:latest-aarch64
     container_name: vllm-qwen3.6-35B-A3B-NVFP4
     restart: unless-stopped
@@ -35,8 +36,49 @@ services:
       --enable-chunked-prefill
       --async-scheduling
       --enable-prefix-caching
-      --speculative-config '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}' # nvidia variant only; remove for unsloth
+      --speculative-config '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}'
       --load-format fastsafetensors
+      --reasoning-parser qwen3
+      --tool-call-parser qwen3_xml
+      --enable-auto-tool-choice
+
+  vllm-qwen3.6-35B-A3B-NVFP4-unsloth:
+    profiles: [unsloth]
+    image: vllm/vllm-openai:latest-aarch64
+    container_name: vllm-qwen3.6-35B-A3B-NVFP4-unsloth
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    env_file:
+      - .env.vllm
+    environment:
+      CUTE_DSL_ARCH: sm_121a
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      --model ${MODEL_ID}
+      --served-model-name qwen3.6-35B-A3B-NVFP4
+      --host 0.0.0.0
+      --port 8000
+      --tensor-parallel-size "1"
+      --trust-remote-code
+      --kv-cache-dtype fp8
+      --attention-backend flashinfer
+      --moe-backend flashinfer_b12x
+      --gpu-memory-utilization "0.4"
+      --max-model-len "262144"
+      --max-num-seqs "4"
+      --max-num-batched-tokens "8192"
+      --enable-chunked-prefill
+      --async-scheduling
+      --enable-prefix-caching
+      --speculative-config '{"method":"mtp","num_speculative_tokens":2}'
       --reasoning-parser qwen3
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
