@@ -11,7 +11,7 @@ Runs the Qwen3.6-35B-A3B model as an OpenAI-compatible inference server using [v
 ## Setup
 
 1. Copy `.env.vllm.example` to `.env.vllm` and set your `HF_TOKEN` used for downloding the model weights.
-2. Run the scripts below in order (`00` through `03`) to install the Hugging Face CLI, authenticate, download the model, and start the server.
+2. Run the scripts below in order to install the Hugging Face CLI, authenticate, download the model, and start the server.
 
 ## Shell scripts
 
