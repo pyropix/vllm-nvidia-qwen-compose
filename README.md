@@ -1,6 +1,6 @@
-# vLLM NVidea Qwen3.6 Compose
+# vLLM NVidia Qwen3.x Compose
 
-Runs Qwen3.6 models as an OpenAI-compatible inference server using [vLLM](https://github.com/vllm-project/vllm) on DGX Spark. The selected model variant is downloaded from Hugging Face and served locally with GPU acceleration (NVIDIA, ARM64/aarch64).
+Runs Qwen3.x models as an OpenAI-compatible inference server using [vLLM](https://github.com/vllm-project/vllm) on DGX Spark. The selected model variant is downloaded from Hugging Face and served locally with GPU acceleration (NVIDIA, ARM64/aarch64).
 
 ## Prerequisites
 
