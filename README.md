@@ -19,10 +19,11 @@ Runs the Qwen3.6-35B-A3B model as an OpenAI-compatible inference server using [v
 | --- | --- |
 | `00_hf_install.sh` | Installs the Hugging Face CLI (`hf`) by running the official install script. |
 | `01_hf_login.sh` | Authenticates the Hugging Face CLI (`hf auth login`), prompting for a token if not already logged in. |
-| `02_hf_download_llm.sh` | Downloads the model weights (`hf download`) into the local Hugging Face cache. |
-| `03_vllm_start.sh` | Pulls the latest `vllm-openai` Docker image and starts the vLLM service in the background |
-| `04_vllm_logs.sh` | Tails/follows the logs of the running vLLM container. |
-| `05_vllm_stop.sh` | Stops and removes the vLLM service and any orphaned containers. |
+| `02_select_model.sh` | Interactive menu to select the model to download and serve; writes `MODEL_ID` to `.env.vllm`. |
+| `03_hf_download_llm.sh` | Downloads the model weights (`hf download`) into the local Hugging Face cache. |
+| `04_vllm_start.sh` | Pulls the latest `vllm-openai` Docker image and starts the vLLM service in the background. |
+| `05_vllm_logs.sh` | Tails/follows the logs of the running vLLM container. |
+| `06_vllm_stop.sh` | Stops and removes the vLLM service and any orphaned containers. |
 
 ## Configuration
 
@@ -31,6 +32,7 @@ The service configuration (model, port, GPU memory utilization, context length, 
 ## Models
 
 - [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4)
+- [unsloth/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-NVFP4)
 
 ## Resources
 
