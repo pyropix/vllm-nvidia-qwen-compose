@@ -50,7 +50,7 @@ services:
       --reasoning-parser qwen3
       --no-language-model-only
       --override-generation-config '{"temperature":0.6,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0}'
-      --default-chat-template-kwargs '{"enable_thinking": true}'
+      --default-chat-template-kwargs '{"enable_thinking": false, "enable_tool_call": true, "enable_tool_call_streaming": true}'
       --chat-template /root/chat_template.jinja
 
   vllm-nv-qwen3.6-35B-A3B-NVFP4:
@@ -80,6 +80,7 @@ services:
       --enable-auto-tool-choice
       --no-language-model-only
       --override-generation-config '{"temperature":0.6,"top_p":0.95,"top_k":20,"min_p":0.0,"presence_penalty":0.0,"repetition_penalty":1.0}'
+      --default-chat-template-kwargs '{"enable_thinking": false, "enable_tool_call": true, "enable_tool_call_streaming": true}'
       --chat-template /root/chat_template.jinja
 
   prometheus:
