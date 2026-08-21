@@ -36,6 +36,7 @@ get_service() {
     case "${MODEL_ID:-}" in
         nvidia/Qwen3.6-27B*)              echo "vllm-nv-qwen3.6-27B-NVFP4" ;;
         nvidia/Qwen3.6-35B-A3B*)          echo "vllm-nv-qwen3.6-35B-A3B-NVFP4" ;;
+        unsloth/Qwen3.8-27B-NVFP4*)       echo "vllm-nv-qwen3.8-27B-NVFP4" ;;
         *) echo "Error: Unknown MODEL_ID '${MODEL_ID}'." >&2; exit 1 ;;
     esac
 }
