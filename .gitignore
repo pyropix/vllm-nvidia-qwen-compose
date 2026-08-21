@@ -1,2 +1,7 @@
 .env
 .env.vllm
+
+# Editor swap files
+.*.swp
+.*.swo
+*~
