@@ -14,14 +14,13 @@ Common to every service (`x-defaults` in `docker-compose.yml`):
 ## 35B-A3B variants (nvidia, unsloth, and unsloth `-Fast`)
 
 - Common: `--kv-cache-dtype fp8 --attention-backend flashinfer --tool-call-parser qwen3_xml`
-- nvidia & unsloth (plain): `--moe-backend marlin` — flashinfer_b12x does not work on these weights; flashinfer_cutlass incompatible with f8e4m3fn quant scheme; triton not valid for NvFP4; marlin is the working fallback
-- unsloth `-Fast`: `--moe-backend flashinfer_b12x` instead — unsloth's [recommended DGX Spark config](https://huggingface.co/unsloth/Qwen3.6-27B-NVFP4#dgx-spark); works on the `-Fast` weights though not on plain `unsloth/Qwen3.6-35B-A3B-NVFP4` (see above); no `--linear-backend` flag needed here (unlike 27B, below)
+- nvidia, unsloth (plain), and unsloth `-Fast`: `--moe-backend marlin` — flashinfer_b12x does not work on these weights; flashinfer_cutlass incompatible with f8e4m3fn quant scheme; triton not valid for NvFP4; marlin is the working fallback across all three variants
 - nvidia: `--async-scheduling`, `--speculative-config '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}'`
 - unsloth (plain and `-Fast`): `--speculative-config '{"method":"mtp","num_speculative_tokens":2}'` (no `moe_backend` key, no `--async-scheduling`)
 
 ## 27B variants (nvidia & unsloth)
 
-- `--moe-backend flashinfer_b12x --linear-backend flashinfer_b12x` — unsloth's [recommended DGX Spark config](https://huggingface.co/unsloth/Qwen3.6-27B-NVFP4#dgx-spark)
+- `--moe-backend marlin` — flashinfer_b12x/linear-backend flashinfer_b12x (unsloth's [recommended DGX Spark config](https://huggingface.co/unsloth/Qwen3.6-27B-NVFP4#dgx-spark)) does not work on these weights; marlin is the working fallback
 - `--tool-call-parser qwen3_coder`
 - `--default-chat-template-kwargs '{"enable_thinking": true}'`
 - nvidia: `--speculative-config '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}'`
@@ -89,9 +88,9 @@ The vLLM provider (base URL, API key, and the served model list) is configured i
 curl http://localhost:8000/v1/models
 ```
 
-## Parent-Level Files (outside this repo, not under git)
+## Parent-Level Files
 
-- `../AGENTS.md` — Points to this file (auto-discovered by Claude)
+- `AGENTS.md` (this repo, tracked in git) — one-line pointer (`@CLAUDE.md`) so agents auto-discover this file
 - `../git-local-user-pyropix.sh` — Sets git identity to `pyropix` for this subproject
 
 ## Git
