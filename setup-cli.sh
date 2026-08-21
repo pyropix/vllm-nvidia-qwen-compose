@@ -89,13 +89,15 @@ menu() {
         "install hf CLI" "reinstall hf CLI (force)" "install hf CLI with transformers"
         "check hf CLI" "uninstall hf CLI"
         "install pi agent CLI" "check pi agent CLI" "update pi agent CLI" "uninstall pi agent CLI"
-        "quit"
     )
     while true; do
         echo ""
         echo "Install & manage CLIs — choose an action:"
-        echo ""
+        echo "  (type 'q' to quit)"
         select action in "${actions[@]}"; do
+            if [[ "${REPLY}" == "q" ]]; then
+                return
+            fi
             case "${action}" in
                 "install hf CLI")                   cmd_hf_install ;;
                 "reinstall hf CLI (force)")         cmd_hf_reinstall ;;
@@ -106,7 +108,6 @@ menu() {
                 "check pi agent CLI")               cmd_pi_check ;;
                 "update pi agent CLI")               cmd_pi_update ;;
                 "uninstall pi agent CLI")            cmd_pi_uninstall ;;
-                "quit")                              return ;;
                 *)                                   echo "Invalid selection." ;;
             esac
             break

@@ -182,11 +182,11 @@ usage() {
 }
 
 menu() {
-    local actions=("select model" "login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink" "quit")
+    local actions=("select model" "login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
     while true; do
         echo ""
         echo "vLLM management — choose an action:"
-        echo "  (or type 'q' to quit)"
+        echo "  (type 'q' to quit)"
         select action in "${actions[@]}"; do
             if [[ "${REPLY}" == "q" ]]; then
                 return
@@ -200,7 +200,6 @@ menu() {
                 "start pi agent") cmd_pi ;;
                 "create 'vllm-serve' symlink") cmd_link ;;
                 "remove 'vllm-serve' symlink") cmd_unlink ;;
-                "quit")           return ;;
                 *)                echo "Invalid selection." ;;
             esac
             break
