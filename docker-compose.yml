@@ -35,7 +35,7 @@ services:
       --enable-chunked-prefill
       --async-scheduling
       --enable-prefix-caching
-      --speculative-config '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}'
+      --speculative-config '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}' # nvidia variant only; remove for unsloth
       --load-format fastsafetensors
       --reasoning-parser qwen3
       --tool-call-parser qwen3_xml
