@@ -125,12 +125,9 @@ cmd_stop() {
         down --remove-orphans
 }
 
-cmd_claude() {
+cmd_pi() {
     load_env
-    ANTHROPIC_BASE_URL=http://localhost:8000 \
-    ANTHROPIC_API_KEY=vllm \
-    ANTHROPIC_AUTH_TOKEN=vllm \
-    claude --model "${MODEL_ID}"
+    pi --model "${MODEL_ID}"
 }
 
 cmd_link() {
@@ -156,14 +153,14 @@ cmd_unlink() {
 }
 
 usage() {
-    echo "Usage: $(basename "$0") [select|download|start|logs|stop|claude|link|unlink]"
+    echo "Usage: $(basename "$0") [select|download|start|logs|stop|pi|link|unlink]"
     echo ""
     echo "  select    Pick model variant and write to .env.vllm"
     echo "  download  Login to HF and download model weights"
     echo "  start     Pull image and start the vLLM container"
     echo "  logs      Tail the running container logs"
     echo "  stop      Stop and remove the container"
-    echo "  claude    Launch Claude Code pointed at the local vLLM server"
+    echo "  pi        Launch pi agent pointed at the local vLLM server"
     echo "  link      Symlink this script as 'vllm-serve' in ~/.local/bin"
     echo "  unlink    Remove the 'vllm-serve' symlink from ~/.local/bin"
     echo ""
@@ -171,7 +168,7 @@ usage() {
 }
 
 menu() {
-    local actions=("select model" "login & download model" "start vllm" "show logs" "stop vllm" "start claude code" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink" "quit")
+    local actions=("select model" "login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink" "quit")
     while true; do
         echo ""
         echo "vLLM management — choose an action:"
@@ -186,7 +183,7 @@ menu() {
                 "start vllm")     cmd_start || true ;;
                 "show logs")      cmd_logs ;;
                 "stop vllm")      cmd_stop ;;
-                "start claude code") cmd_claude ;;
+                "start pi agent") cmd_pi ;;
                 "create 'vllm-serve' symlink") cmd_link ;;
                 "remove 'vllm-serve' symlink") cmd_unlink ;;
                 "quit")           return ;;
@@ -203,7 +200,7 @@ case "${1:-}" in
     start)          cmd_start ;;
     logs)           cmd_logs ;;
     stop)           cmd_stop ;;
-    claude)         cmd_claude ;;
+    pi)             cmd_pi ;;
     link)           cmd_link ;;
     unlink)         cmd_unlink ;;
     help|--help|-h) usage ;;
