@@ -71,13 +71,12 @@ Run without arguments for an interactive menu, or pass a subcommand directly:
 
 ### Profiles
 
-Each `MODEL_ID` in `models.conf` has its own compose service/profile of the same name, prefixed `vllm-nv-` or `vllm-uns-` — e.g. `vllm-nv-qwen3.6-27B-NVFP4`, `vllm-uns-qwen3.6-35B-A3B-NVFP4`, `vllm-uns-qwen3.6-35B-A3B-NVFP4-fast`. `./vllm-serve.sh` maps `MODEL_ID` to the matching service/profile automatically; manual `docker compose` requires `--profile <service-name>`.
+Each `MODEL_ID` in `models.conf` has its own compose service/profile of the same name, prefixed `vllm-nv-` — e.g. `vllm-nv-qwen3.6-27B-NVFP4`, `vllm-nv-qwen3.6-35B-A3B-NVFP4`. `./vllm-serve.sh` maps `MODEL_ID` to the matching service/profile automatically; manual `docker compose` requires `--profile <service-name>`.
 
 All services share `--dtype auto --quantization modelopt` plus `CUTE_DSL_ARCH=sm_121a`, `FLASHINFER_DISABLE_VERSION_CHECK=1`, and `VLLM_MARLIN_USE_ATOMIC_ADD=1` (set once in `docker-compose.yml`'s `x-defaults`), a mounted custom chat template (`--chat-template`, see [Chat template fix](#chat-template-fix) below), and an `--override-generation-config` with the model's recommended sampling defaults (`temperature 0.6`, `top_p 0.95`, `top_k 20`, `min_p 0.0`).
 
-- **35B-A3B** variants (nvidia, unsloth, and unsloth `-Fast`) share `--kv-cache-dtype fp8 --attention-backend flashinfer --tool-call-parser qwen3_xml --moe-backend marlin` — `flashinfer_b12x` doesn't work on any of these weights (including the `-Fast` ones), so all three fall back to `marlin`.
-- **27B** variants use `--moe-backend marlin` — `flashinfer_b12x`/`--linear-backend flashinfer_b12x`, unsloth's [recommended DGX Spark config](https://huggingface.co/unsloth/Qwen3.6-27B-NVFP4#dgx-spark), doesn't work on these weights either — plus `--tool-call-parser qwen3_coder` and `--default-chat-template-kwargs '{"enable_thinking": true}'`.
-- Within each size, `nvidia/*` variants use `--speculative-config` with `moe_backend: triton` and more speculative tokens (plus `--async-scheduling` on 35B); `unsloth/*` variants (incl. `-Fast`) use fewer speculative tokens and no `moe_backend` key.
+- **35B-A3B** uses `--kv-cache-dtype fp8 --attention-backend flashinfer --tool-call-parser qwen3_xml --moe-backend marlin --async-scheduling` and `--speculative-config` with `moe_backend: triton`.
+- **27B** uses `--moe-backend marlin`, `--tool-call-parser qwen3_coder`, `--default-chat-template-kwargs '{"enable_thinking": true}'`, and `--speculative-config` with `moe_backend: triton`.
 
 ### Chat template fix
 
@@ -101,7 +100,7 @@ curl http://localhost:8000/v1/models
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "unsloth/Qwen3.6-35B-A3B-NVFP4",
+    "model": "nvidia/Qwen3.6-35B-A3B-NVFP4",
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 64
   }'
@@ -114,7 +113,7 @@ curl http://localhost:8000/v1/chat/completions \
 ./vllm-serve.sh pi
 
 # Option 2: Run pi directly (provider is configured in .pi/agent/models.json)
-pi --model unsloth/Qwen3.6-35B-A3B-NVFP4
+pi --model nvidia/Qwen3.6-35B-A3B-NVFP4
 ```
 
 ## Observability (Prometheus + Grafana)
@@ -134,15 +133,12 @@ curl http://localhost:8000/metrics   # raw vLLM metrics
 
 The list of models offered by `./vllm-serve.sh select` is defined in [`models.conf`](models.conf) — one `MODEL_ID` per line. To add a new variant, add a line there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
 
-| Variant                 | Hugging Face                                                                                    | Notes                                                                                                                                                                                                                                            |
-| ----------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **nvidia** (35B)        | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4)             | `moe_backend: triton` for speculative decoding, `--async-scheduling`                                                                                                                                                                             |
-| **unsloth** (35B)       | [unsloth/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-NVFP4)           | Slightly more conservative speculative config, no `--async-scheduling`                                                                                                                                                                           |
-| **unsloth** (35B, Fast) | [unsloth/Qwen3.6-35B-A3B-NVFP4-Fast](https://huggingface.co/unsloth/Qwen3.6-35B-A3B-NVFP4-Fast) | Same as unsloth 35B above, `marlin` MoE backend (`flashinfer_b12x` doesn't work on these weights either)                                                                                                                                        |
-| **nvidia** (27B)        | [nvidia/Qwen3.6-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)                     | `marlin` MoE backend (`flashinfer_b12x`, [unsloth's recommended DGX Spark config](https://huggingface.co/unsloth/Qwen3.6-27B-NVFP4#dgx-spark), doesn't work on these weights), `qwen3_coder` tool parser, `moe_backend: triton` for speculative decoding |
-| **unsloth** (27B)       | [unsloth/Qwen3.6-27B-NVFP4](https://huggingface.co/unsloth/Qwen3.6-27B-NVFP4)                   | Same 27B profile/flags as above, more conservative speculative config                                                                                                                                                                            |
+| Variant          | Hugging Face                                                                          | Notes                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **nvidia** (35B) | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4) | `moe_backend: triton` for speculative decoding, `--async-scheduling`                               |
+| **nvidia** (27B) | [nvidia/Qwen3.6-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)         | `marlin` MoE backend, `qwen3_coder` tool parser, `moe_backend: triton` for speculative decoding   |
 
-All five are listed in [`models.conf`](models.conf) and selectable via `./vllm-serve.sh select`. Each has its own compose service/profile (see [Profiles](#profiles) above) — no shared-container naming gotcha.
+Both are listed in [`models.conf`](models.conf) and selectable via `./vllm-serve.sh select`. Each has its own compose service/profile (see [Profiles](#profiles) above).
 
 ## License
 
