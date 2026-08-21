@@ -8,6 +8,7 @@ x-defaults: &defaults
   volumes:
     - ~/.cache/huggingface:/root/.cache/huggingface
     - ~/.cache/vllm:/root/.cache/vllm
+    - ./fix-qwen3.6-chat-template/chat_template.jinja:/root/chat_template.jinja:ro
 
   env_file:
     - .env.vllm
@@ -49,6 +50,7 @@ services:
       --reasoning-parser qwen3
       --no-language-model-only
       --default-chat-template-kwargs '{"enable_thinking": true}'
+      --chat-template /root/chat_template.jinja
 
   vllm-uns-qwen3.6-27B-NVFP4:
     profiles: [vllm-uns-qwen3.6-27B-NVFP4]
@@ -76,6 +78,7 @@ services:
       --reasoning-parser qwen3
       --no-language-model-only
       --default-chat-template-kwargs '{"enable_thinking": true}'
+      --chat-template /root/chat_template.jinja
 
   vllm-nv-qwen3.6-35B-A3B-NVFP4:
     profiles: [vllm-nv-qwen3.6-35B-A3B-NVFP4]
@@ -103,6 +106,7 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
       --no-language-model-only
+      --chat-template /root/chat_template.jinja
 
   vllm-uns-qwen3.6-35B-A3B-NVFP4:
     profiles: [vllm-uns-qwen3.6-35B-A3B-NVFP4]
@@ -129,6 +133,7 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
       --no-language-model-only
+      --chat-template /root/chat_template.jinja
 
   vllm-uns-qwen3.6-35B-A3B-NVFP4-fast:
     profiles: [vllm-uns-qwen3.6-35B-A3B-NVFP4-fast]
@@ -155,6 +160,7 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
       --no-language-model-only
+      --chat-template /root/chat_template.jinja
 
   prometheus:
     image: prom/prometheus:latest

@@ -1,0 +1,72 @@
+{
+  "providers": {
+    "vllm": {
+      "baseUrl": "http://localhost:8000/v1", 
+      "apiKey": "vllm",
+      "api": "openai-completions",
+      "models": [
+        { 
+          "id": "nvidia/Qwen3.6-27B-A3B-NVFP4",
+          "contextWindow": 262144,
+          "input": [
+            "text",
+            "image"
+          ],
+          "reasoning": true
+        },
+        { 
+          "id": "unsloth/Qwen3.6-27B-NVFP4",
+          "contextWindow": 262144,
+          "input": [
+            "text",
+            "image"
+          ],
+          "reasoning": true
+        },
+        { 
+          "id": "nvidia/Qwen3.6-35B-A3B-NVFP4",
+          "contextWindow": 262144,
+          "input": [
+            "text",
+            "image"
+          ],
+          "reasoning": true
+        },
+        { 
+          "id": "unsloth/Qwen3.6-35B-A3B-NVFP4",
+          "contextWindow": 262144,
+          "input": [
+            "text",
+            "image"
+          ],
+          "reasoning": true
+        },
+        { 
+          "id": "unsloth/Qwen3.6-35B-A3B-NVFP4-Fast",
+          "contextWindow": 262144,
+          "input": [
+            "text",
+            "image"
+          ],
+          "reasoning": true
+        }
+      ]
+    },
+    "ollama": {
+      "api": "openai-completions",
+      "apiKey": "ollama",
+      "baseUrl": "http://127.0.0.1:11434/v1",
+      "models": [
+        {
+          "id": "qwen3.6:27b",
+          "contextWindow": 262144,
+          "input": [
+            "text",
+            "image"
+          ],
+          "reasoning": true
+        }
+      ]
+    }
+  }
+}
