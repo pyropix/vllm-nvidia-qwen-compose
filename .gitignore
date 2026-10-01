@@ -5,3 +5,5 @@
 .*.swp
 .*.swo
 *~
+# Scrape target written per Run by vllm-serve.sh start
+monitoring/targets/*.json

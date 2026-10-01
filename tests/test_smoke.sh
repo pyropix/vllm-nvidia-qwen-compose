@@ -158,7 +158,8 @@ test_start_removes_other_variants() {
 test_stop_compose_args() {
     run_script stop
     assert_status 0
-    assert_log_contains "$(compose_prefix) --profile ${SVC_A} down --remove-orphans"
+    assert_log_contains "$(compose_prefix) --profile ${SVC_A} rm --stop --force ${SVC_A}"
+    assert_log_lacks " down "
 }
 
 test_logs_compose_args() {
@@ -185,12 +186,6 @@ test_ready_fails_when_unreachable() {
     run_script ready
     assert_status 1
     assert_out_contains "vLLM is not ready"
-}
-
-test_stop_takes_service_down() {
-    run_script stop
-    assert_status 0
-    assert_log_contains "--profile ${SVC_A} down --remove-orphans"
 }
 
 test_pi_launches_with_model() {

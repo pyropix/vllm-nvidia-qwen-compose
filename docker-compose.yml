@@ -164,8 +164,17 @@ services:
     container_name: vllm-prometheus
     restart: unless-stopped
     network_mode: host
+    # Overriding command replaces the image defaults, so repeat them.
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=2GB
     volumes:
       - ./monitoring/prometheus.yaml:/etc/prometheus/prometheus.yml
+      # vllm-serve.sh start writes the labelled scrape target (one per Run) here.
+      - ./monitoring/targets:/etc/prometheus/targets
+      - prometheus-data:/prometheus
 
   grafana:
     image: grafana/grafana:latest
@@ -179,3 +188,12 @@ services:
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+
+# Fixed names: the default <directory>_<volume> prefix would split the history
+# across checkouts and orphan it when the repo directory is renamed.
+volumes:
+  prometheus-data:
+    name: vllm-prometheus-data
+  grafana-data:
+    name: vllm-grafana-data

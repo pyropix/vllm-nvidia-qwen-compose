@@ -65,6 +65,8 @@ The list of models offered by `./vllm-serve.sh select` is defined in [`models.js
 - Prometheus: `http://localhost:9090` (scrapes `localhost:8000/metrics`).
 - Grafana: `http://localhost:3000` (default login `admin`/`admin`), dashboards auto-provisioned from `monitoring/` — no manual setup.
 
+Metrics history is kept in the Docker volumes `vllm-prometheus-data` and `vllm-grafana-data` (Prometheus keeps 15 days, capped at 2 GB). It survives `./vllm-serve.sh stop`, model switches and restarts; `stop` leaves Prometheus and Grafana running so a finished Run stays browsable (`stop --all` stops them too). Every `start` begins a new **Run**, labelled `run` (start time, Model ID and Variant), and the dashboards have a **Run** selector so you can overlay Runs to compare them. Delete all history with `./vllm-serve.sh reset-metrics`.
+
 ## License
 
 MIT License, Copyright (c) 2026 M. R. Hartmann

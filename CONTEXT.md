@@ -14,4 +14,6 @@
 
 **Context window**: The maximum number of tokens (prompt plus output) a Service accepts for a Model ID, declared once per Model ID in the Model registry as `context`. All Variants of a Model ID share it. vLLM's `--max-model-len` and the pi provider's `contextWindow` both take their value from it; neither holds a copy.
 
+**Run**: One continuous stretch of serving a single Service, from its start to its stop. A Run is identified by its Model ID, Variant (if any) and start time. Runs are the unit of performance comparison: metrics are recorded per Run, so one Run can be compared against another (different Model IDs, different Variants of one Model ID, or the same Service started at different times). Metric history outlives a Run; it is discarded only by an explicit reset.
+
 **Model registry**: The single list of selectable Model IDs, with each one's Context window, Variants and optional Draft model. It is the only place the Model ID to Draft model pairing and the Context window are configured; other files only describe or read them.
