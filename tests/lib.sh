@@ -38,10 +38,10 @@ sandbox_new() {
     cp -r "${REPO_DIR}/lib" "${SANDBOX}/lib"
     cat >"${SANDBOX}/models.json" <<'JSON'
 [
-  {"id": "nvidia/Qwen-A", "service": "vllm-alpha", "context": 262144, "draft": "z-lab/Draft-A",
+  {"id": "nvidia/Qwen-A", "service": "vllm-alpha", "context": 1001, "draft": "z-lab/Draft-A",
    "variants": [{"name": "fast", "service": "vllm-alpha-turbo"}]},
-  {"id": "unsloth/Qwen-B", "service": "vllm-beta-service", "context": 1048576},
-  {"id": "unsloth/Qwen-C", "service": "vllm-gamma", "context": 65536, "draft": "z-lab/Draft-A"}
+  {"id": "unsloth/Qwen-B", "service": "vllm-beta-service", "context": 1002},
+  {"id": "unsloth/Qwen-C", "service": "vllm-gamma", "context": 1003, "draft": "z-lab/Draft-A"}
 ]
 JSON
     {

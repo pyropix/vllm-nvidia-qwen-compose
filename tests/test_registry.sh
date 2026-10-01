@@ -35,7 +35,7 @@ test_lookup_draft_and_context() {
     use_registry
     [[ "$(registry_draft nvidia/Qwen-A)" == "z-lab/Draft-A" ]] || fail "draft A"
     [[ -z "$(registry_draft unsloth/Qwen-B)" ]] || fail "draft B should be empty"
-    [[ "$(registry_context unsloth/Qwen-B)" == "1048576" ]] || fail "context B"
+    [[ "$(registry_context unsloth/Qwen-B)" == "1002" ]] || fail "context B"
     [[ -z "$(registry_context nope/Unknown)" ]] || fail "unknown context should be empty"
 }
 
