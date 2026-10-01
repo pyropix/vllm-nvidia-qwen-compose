@@ -15,12 +15,12 @@ cmd_pi() {
 link_path() { echo "${HOME}/.local/bin/vllm-serve"; }
 
 cmd_link() {
-  local link_path bin_dir
-  link_path="$(link_path)"
-  bin_dir="$(dirname "${link_path}")"
+  local link bin_dir
+  link="$(link_path)"
+  bin_dir="$(dirname "${link}")"
   mkdir -p "${bin_dir}"
-  ln -sf "${SCRIPT_DIR}/vllm-serve.sh" "${link_path}"
-  echo "Linked ${link_path} -> ${SCRIPT_DIR}/vllm-serve.sh"
+  ln -sf "${SCRIPT_DIR}/vllm-serve.sh" "${link}"
+  echo "Linked ${link} -> ${SCRIPT_DIR}/vllm-serve.sh"
   case ":${PATH}:" in
     *":${bin_dir}:"*) echo "Run 'vllm-serve' from anywhere." ;;
     *) echo "Warning: ${bin_dir} is not on your PATH. Add it to your shell profile." ;;
@@ -28,12 +28,12 @@ cmd_link() {
 }
 
 cmd_unlink() {
-  local link_path
-  link_path="$(link_path)"
-  if [[ -L "${link_path}" ]]; then
-    rm -f "${link_path}"
-    echo "Removed symlink ${link_path}"
+  local link
+  link="$(link_path)"
+  if [[ -L "${link}" ]]; then
+    rm -f "${link}"
+    echo "Removed symlink ${link}"
   else
-    echo "No symlink found at ${link_path}"
+    echo "No symlink found at ${link}"
   fi
 }
