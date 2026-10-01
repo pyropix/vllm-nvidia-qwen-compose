@@ -39,6 +39,8 @@ services:
     profiles: [vllm-nv-qwen-A-fast]
   vllm-us-qwen-B:
     profiles: [vllm-us-qwen-B]
+  vllm-us-qwen-C:
+    profiles: [vllm-us-qwen-C]
 YAML
     cat >"${SANDBOX}/.env.vllm" <<'ENV'
 HF_TOKEN=test-token
