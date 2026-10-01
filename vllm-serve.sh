@@ -114,7 +114,8 @@ cmd_download() {
         exit 1
     fi
     hf auth login --token "${HF_TOKEN}"
-    hf download "${MODEL_ID}"
+    # Strip an optional ":variant" suffix; the HF repo has no such suffix.
+    hf download "${MODEL_ID%%:*}"
     unset HF_TOKEN
     hf auth logout
 }
