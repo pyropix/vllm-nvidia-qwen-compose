@@ -63,14 +63,14 @@ test_status_download_without_draft_model() {
 test_shared_draft_model_serves_both_model_ids() {
     fake_complete_download
     fake_download unsloth/Qwen-C
-    select_model unsloth/Qwen-C z-lab/Draft-A
+    select_model unsloth/Qwen-C
     run_script status
     assert_out_contains "Download   complete"
 }
 
 test_download_skips_draft_model_already_fetched() {
     fake_download z-lab/Draft-A
-    select_model unsloth/Qwen-C z-lab/Draft-A
+    select_model unsloth/Qwen-C
     run_script download
     assert_status 0
     assert_log_contains "hf download unsloth/Qwen-C"

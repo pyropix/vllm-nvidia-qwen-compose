@@ -72,9 +72,12 @@ fake_download() {
     ln -s ../../blobs/w "${repo_dir}/snapshots/rev1/model.safetensors"
 }
 
-# Select a Model ID (and its registry Draft model) in the sandbox .env.vllm.
+# Select a Model ID in the sandbox .env.vllm; its Draft model comes from the
+# sandbox registry so fixtures cannot drift from it.
 select_model() {
-    sed -i -e "s|^MODEL_ID=.*|MODEL_ID=$1|" -e "s|^DRAFT_MODEL_ID=.*|DRAFT_MODEL_ID=${2:-}|" "${SANDBOX}/.env.vllm"
+    local draft
+    draft="$(jq -r --arg id "$1" '.[] | select(.id == $id) | .draft // empty' "${SANDBOX}/models.json")"
+    sed -i -e "s|^MODEL_ID=.*|MODEL_ID=$1|" -e "s|^DRAFT_MODEL_ID=.*|DRAFT_MODEL_ID=${draft}|" "${SANDBOX}/.env.vllm"
 }
 
 # Path of a repo's directory in the fake HF cache.

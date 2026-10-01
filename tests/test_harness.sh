@@ -46,7 +46,7 @@ INNER
 test_assert_failure_still_fails_the_test() {
     run_inner_tests <<'INNER'
 test_assert() {
-    serve status
+    run_script status
     assert_status 99
 }
 INNER
@@ -58,7 +58,7 @@ test_passing_test_is_ok() {
     run_inner_tests <<'INNER'
 test_fine() {
     true
-    serve status
+    run_script status
     assert_status 0
 }
 INNER
