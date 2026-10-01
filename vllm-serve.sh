@@ -166,8 +166,13 @@ get_service() {
     echo "${service}"
 }
 
-get_profile() {
-    get_service
+# Run docker compose against this checkout and its .env.vllm. Callers pass
+# the rest (--profile, subcommand, ...).
+compose() {
+    docker compose \
+        --project-directory "${SCRIPT_DIR}" \
+        --env-file "${ENV_FILE}" \
+        "$@"
 }
 
 set_env_var() {
@@ -222,11 +227,7 @@ cmd_status() {
     local running=() svc entry model_id variant found
     while IFS= read -r svc; do
         [[ "${svc}" == vllm-* ]] && running+=("${svc}")
-    done < <(docker compose \
-        --project-directory "${SCRIPT_DIR}" \
-        --env-file "${ENV_FILE}" \
-        --profile '*' \
-        ps --status running --format '{{.Service}}')
+    done < <(compose --profile '*' ps --status running --format '{{.Service}}')
     if (( ${#running[@]} == 0 )); then
         printf "${fmt}" "Container" "none running"
         echo ""
@@ -306,14 +307,9 @@ cmd_start() {
     load_env
     check_draft
     check_downloaded
-    local profile service
-    profile="$(get_profile)"
+    local service
     service="$(get_service)"
-    if docker compose \
-        --project-directory "${SCRIPT_DIR}" \
-        --env-file "${ENV_FILE}" \
-        --profile "${profile}" \
-        ps "${service}" --status running --format '{{.Service}}' | grep -q "^${service}$"; then
+    if compose --profile "${service}" ps "${service}" --status running --format '{{.Service}}' | grep -q "^${service}$"; then
         echo "Error: ${service} is already running." >&2
         echo "Stop it first with $(basename "$0") stop." >&2
         return 1
@@ -322,50 +318,27 @@ cmd_start() {
     local other others=()
     while IFS= read -r other; do
         [[ "${other}" == vllm-* && "${other}" != "${service}" ]] && others+=("${other}")
-    done < <(docker compose \
-        --project-directory "${SCRIPT_DIR}" \
-        --env-file "${ENV_FILE}" \
-        --profile '*' \
-        ps --all --format '{{.Service}}')
+    done < <(compose --profile '*' ps --all --format '{{.Service}}')
     if (( ${#others[@]} > 0 )); then
         echo "Stopping other variants: ${others[*]}"
-        docker compose \
-            --project-directory "${SCRIPT_DIR}" \
-            --env-file "${ENV_FILE}" \
-            --profile '*' \
-            rm --stop --force "${others[@]}"
+        compose --profile '*' rm --stop --force "${others[@]}"
     fi
-    docker compose \
-        --project-directory "${SCRIPT_DIR}" \
-        --env-file "${ENV_FILE}" \
-        --profile "${profile}" \
-        pull
-    docker compose \
-        --project-directory "${SCRIPT_DIR}" \
-        --env-file "${ENV_FILE}" \
-        --profile "${profile}" \
-        up --detach --remove-orphans
+    compose --profile "${service}" pull
+    compose --profile "${service}" up --detach --remove-orphans
 }
 
 cmd_logs() {
     load_env
     local service
     service="$(get_service)"
-    docker compose \
-        --project-directory "${SCRIPT_DIR}" \
-        --env-file "${ENV_FILE}" \
-        logs "${service}" --follow
+    compose logs "${service}" --follow
 }
 
 cmd_stop() {
     load_env
-    local profile
-    profile="$(get_profile)"
-    docker compose \
-        --project-directory "${SCRIPT_DIR}" \
-        --env-file "${ENV_FILE}" \
-        --profile "${profile}" \
-        down --remove-orphans
+    local service
+    service="$(get_service)"
+    compose --profile "${service}" down --remove-orphans
 }
 
 cmd_pi() {
