@@ -34,6 +34,7 @@ sandbox_new() {
     : >"${STUB_DOCKER_LOGS}"
     : >"${STUB_CURL_OUT}"
     cp "${REPO_DIR}/vllm-serve.sh" "${SANDBOX}/vllm-serve.sh"
+    cp -r "${REPO_DIR}/lib" "${SANDBOX}/lib"
     cat >"${SANDBOX}/models.json" <<'JSON'
 [
   {"id": "nvidia/Qwen-A", "context": 262144, "draft": "z-lab/Draft-A", "variants": ["fast"]},
