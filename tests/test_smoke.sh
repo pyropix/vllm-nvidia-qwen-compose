@@ -49,7 +49,7 @@ test_select_writes_env() {
 test_select_without_variant_clears_variant_and_draft() {
     # Start from a variant with a Draft model so clearing is observable.
     sed -i -e 's|^MODEL_VARIANT=.*|MODEL_VARIANT=fast|' "${SANDBOX}/.env.vllm"
-    serve_stdin "3" select
+    run_script --stdin "3" select
     assert_status 0
     grep -q '^MODEL_ID=unsloth/Qwen-B$' "${SANDBOX}/.env.vllm" || fail "MODEL_ID not written"
     grep -q '^MODEL_VARIANT=$' "${SANDBOX}/.env.vllm" || fail "MODEL_VARIANT not cleared"
@@ -97,7 +97,7 @@ test_logs_follows_service() {
 
 test_logs_passes_container_output_through() {
     printf 'engine started\nlistening on :8000\n' >"${STUB_DOCKER_LOGS}"
-    serve logs
+    run_script logs
     assert_status 0
     assert_out_contains "engine started"
     assert_out_contains "listening on :8000"
