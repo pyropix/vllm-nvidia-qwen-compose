@@ -205,4 +205,19 @@ test_link_and_unlink() {
     [[ ! -e "${HOME}/.local/bin/vllm-serve" ]] || fail "symlink not removed"
 }
 
+test_compose_requires_context_window() {
+    local total required
+    # shellcheck disable=SC2016 # literal compose syntax, not a shell expansion
+    total="$(grep -c -- '--max-model-len' "${REPO_DIR}/docker-compose.yml")"
+    required="$(grep -c -- '--max-model-len "${MAX_MODEL_LEN:?.*select' "${REPO_DIR}/docker-compose.yml")"
+    [[ "${total}" -gt 0 && "${total}" == "${required}" ]] || fail "not every --max-model-len requires MAX_MODEL_LEN with a select hint (${required}/${total})"
+}
+
+test_stop_works_with_stale_context_window() {
+    sed -i '/^MAX_MODEL_LEN=/d' "${SANDBOX}/.env.vllm"
+    run_script stop
+    assert_status 0
+    assert_log_contains "docker-env MAX_MODEL_LEN=0"
+}
+
 run_tests
