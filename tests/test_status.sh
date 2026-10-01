@@ -10,10 +10,11 @@ use_status() {
 
 # ADR 0003: every copy of the vLLM address matches VLLM_ADDR. Lists all that don't.
 test_vllm_addr_copies_match() {
-  source_modules "${REPO_DIR}"
-  local url="http://${VLLM_ADDR}/v1" port="${VLLM_ADDR##*:}" compose="${REPO_DIR}/docker-compose.yml"
+  local addr url port compose="${REPO_DIR}/docker-compose.yml"
+  addr="$(vllm_addr)"
+  url="http://${addr}/v1" port="${addr##*:}"
   local bad=() hits ts base ports p
-  hits="$(grep -rlF "${VLLM_ADDR}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
+  hits="$(grep -rlF "${addr}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
   [[ "${hits}" == "${REPO_DIR}/lib/status.sh" ]] || bad+=("shell literal in: ${hits}")
   ts="$(sed -nE 's/^const BASE_URL = "(.*)";$/\1/p' "${REPO_DIR}/.pi/extensions/pi-vllm-qwen/index.ts")"
   [[ "${ts}" == "${url}" ]] ||
@@ -25,7 +26,7 @@ test_vllm_addr_copies_match() {
   for p in ${ports}; do
     [[ "${p}" == "${port}" ]] || bad+=("docker-compose.yml --port ${p}")
   done
-  ((${#bad[@]} == 0)) || fail "disagree with VLLM_ADDR=${VLLM_ADDR}: ${bad[*]}"
+  ((${#bad[@]} == 0)) || fail "disagree with VLLM_ADDR=${addr}: ${bad[*]}"
 }
 
 test_query_models_asks_the_models_url() {
