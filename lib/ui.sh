@@ -44,6 +44,7 @@ usage() {
   echo "  start     Pull image and start the vLLM container"
   echo "  logs      Tail the running container logs"
   echo "  ready     Check if vLLM answers GET /v1/models (--wait: poll until it does)"
+  echo "            (result to stdout; progress and \"not ready\" to stderr)"
   echo "  stop      Stop and remove the vLLM container; Prometheus and Grafana keep running"
   echo "            (--all: stop them too; metrics history is kept)"
   echo "  reset-metrics  Delete all metrics history (--yes: skip the prompt; refused while vLLM runs)"
