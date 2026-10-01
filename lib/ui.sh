@@ -9,6 +9,7 @@ cmd_select() {
     echo "Select the model to download and serve:"
     echo ""
     local entry model_id variant draft context
+    # shellcheck disable=SC2154 # models is filled by registry_load
     select entry in "${models[@]}"; do
         [[ -n "${entry}" ]] && break
         echo "Invalid selection. Enter a number between 1 and ${#models[@]}."
