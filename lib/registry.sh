@@ -1,6 +1,8 @@
 # shellcheck shell=bash
 # Registry module: loading models.json, Model ID and Variant lookup and
-# MODEL_ID[:variant] parsing. Sourced by vllm-serve.sh, which sets MODELS_FILE.
+# MODEL_ID[:variant] parsing. Sourced by vllm-serve.sh.
+# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
+# Requires: MODELS_FILE
 
 require_jq() {
     if ! command -v jq &>/dev/null; then

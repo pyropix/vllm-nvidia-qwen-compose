@@ -1,6 +1,8 @@
 # shellcheck shell=bash
 # Runtime module: .env.vllm, the docker compose wrapper and the selected Service.
-# Sourced by vllm-serve.sh, which sets SCRIPT_DIR, ENV_FILE and MODELS_FILE.
+# Sourced by vllm-serve.sh.
+# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
+# Requires: SCRIPT_DIR ENV_FILE MODELS_FILE registry_draft registry_context registry_service
 
 load_env() {
     if [[ ! -f "${ENV_FILE}" ]]; then

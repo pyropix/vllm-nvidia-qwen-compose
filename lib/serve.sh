@@ -1,6 +1,9 @@
 # shellcheck shell=bash
 # Serve module: start, stop and logs of the vLLM container.
 # Sourced by vllm-serve.sh.
+# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
+# Requires: SCRIPT_DIR load_env compose get_service check_registry_env check_downloaded
+# Requires: write_run_target clear_run_target
 
 cmd_start() {
     load_env
