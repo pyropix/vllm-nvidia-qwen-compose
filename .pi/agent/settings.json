@@ -1,8 +1,10 @@
 {
+  "theme": "dark",
   "defaultModel": "nvidia/Qwen3.8-27B-NVFP4",
-  "defaultProvider": "vllm",
+  "defaultProvider": "spark-vllm-docker",
   "packages": [
-    "npm:@ollama/pi-web-search"
+    "npm:pi-web-access",
+    "npm:pi-mcp-adapter"
   ],
   "enableInstallTelemetry": false
 }

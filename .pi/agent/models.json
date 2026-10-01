@@ -1,7 +1,7 @@
 {
   "providers": {
     "vllm": {
-      "baseUrl": "http://localhost:8000/v1", 
+      "baseUrl": "http://host.docker.internal:8000/v1", 
       "apiKey": "vllm",
       "api": "openai-completions",
       "models": [
