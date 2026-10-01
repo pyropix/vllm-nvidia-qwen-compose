@@ -39,7 +39,8 @@ test_ready_routes()         { assert_route "cmd_ready " ready; }
 test_ready_wait_routes()    { assert_route "cmd_ready --wait" ready --wait; }
 test_stop_routes()          { assert_route "cmd_stop " stop; }
 test_stop_all_routes()      { assert_route "cmd_stop --all" stop --all; }
-test_reset_metrics_routes() { assert_route "cmd_reset_metrics --yes" reset-metrics --yes; }
+test_reset_metrics_routes() { assert_route "cmd_reset_metrics " reset-metrics; }
+test_reset_metrics_yes_routes() { assert_route "cmd_reset_metrics --yes" reset-metrics --yes; }
 test_pi_routes()            { assert_route "cmd_pi " pi; }
 test_link_routes()          { assert_route "cmd_link " link; }
 test_unlink_routes()        { assert_route "cmd_unlink " unlink; }
