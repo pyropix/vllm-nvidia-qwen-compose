@@ -12,3 +12,17 @@ OpenAI-compatible API: `http://localhost:8000`. Quickstart: `README.md`; launch 
 
 - Conventional commits: `type(scope): description` (feat, fix, chore, docs, refactor, test, perf)
 - Do NOT add an author to commit messages
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`pyropix/vllm-nvidia-qwen-compose`, via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
