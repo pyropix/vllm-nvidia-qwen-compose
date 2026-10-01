@@ -2,7 +2,7 @@
 # Readiness and status module: the vLLM URL, the /v1/models ready check,
 # running-service detection and status rendering. Sourced by vllm-serve.sh.
 require_defined ENV_FILE MODELS_FILE load_env compose download_state || return 1
-require_defined registry_load registry_draft registry_context registry_lookup_service || return 1
+require_defined registry_load registry_ids registry_draft registry_context registry_lookup_service || return 1
 
 # host:port vLLM listens on; all variants share it. The shell scripts take it from here.
 VLLM_ADDR="localhost:8000"
@@ -61,7 +61,7 @@ cmd_status() {
   local id
   while IFS= read -r id; do
     printf "  %s  %s\n" "${id}" "$(download_state "${id}")"
-  done < <(jq -r '.[].id' "${MODELS_FILE}")
+  done < <(registry_ids)
   echo ""
   echo "Running"
   local running=() svc model_id variant owner
