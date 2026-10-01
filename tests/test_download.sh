@@ -346,6 +346,19 @@ test_status_download_index_empty_weight_map_incomplete() { assert_malformed_inde
 test_status_download_index_weight_map_not_object_incomplete() { assert_malformed_index_incomplete '{"weight_map":["model.safetensors"]}'; }
 test_status_download_index_non_string_shard_incomplete() { assert_malformed_index_incomplete '{"weight_map":{"a":1}}'; }
 
+# replace_with_noncached <mode> <path>: put a file the HF cache did not fetch at
+# <path>, a regular file (regular-file) or a symlink to a file outside the
+# repo's blobs (outside-link).
+replace_with_noncached() {
+  rm -f "$2"
+  echo weights >"${SANDBOX}/${2##*/}"
+  case "$1" in
+    regular-file) cp "${SANDBOX}/${2##*/}" "$2" ;;
+    outside-link) ln -s "${SANDBOX}/${2##*/}" "$2" ;;
+    *) fail "unknown mode: $1" ;;
+  esac
+}
+
 # A listed shard counts only as a snapshot symlink to a blob of its repo (#43):
 # with model.safetensors listed in the index, replace it with a regular file
 # (regular-file) or a symlink to a file outside the blobs (outside-link).
@@ -354,13 +367,7 @@ assert_listed_shard_incomplete() {
   local snapshot
   snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
   echo '{"weight_map":{"a":"model.safetensors"}}' >"${snapshot}/model.safetensors.index.json"
-  rm "${snapshot}/model.safetensors"
-  echo weights >"${SANDBOX}/model.safetensors"
-  case "$1" in
-    regular-file) cp "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
-    outside-link) ln -s "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
-    *) fail "unknown mode: $1" ;;
-  esac
+  replace_with_noncached "$1" "${snapshot}/model.safetensors"
   run_script status
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
@@ -369,24 +376,30 @@ test_status_download_listed_shard_regular_file_incomplete() { assert_listed_shar
 test_status_download_listed_shard_link_outside_blobs_incomplete() { assert_listed_shard_incomplete outside-link; }
 
 # With no weight index, the at-least-one safetensors check also counts only a
-# snapshot symlink to a blob of its repo (#44): put <target> in place of the only shard.
+# snapshot symlink to a blob of its repo (#44): replace the only shard (modes as above).
 assert_only_safetensors_incomplete() {
   fake_complete_download
   local snapshot
   snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
-  rm -f "${snapshot}"/*.safetensors.index.json "${snapshot}"/*.safetensors
-  echo weights >"${SANDBOX}/model.safetensors"
-  case "$1" in
-    regular-file) cp "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
-    outside-link) ln -s "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
-    *) fail "unknown mode: $1" ;;
-  esac
+  rm -f "${snapshot}"/*.safetensors.index.json
+  replace_with_noncached "$1" "${snapshot}/model.safetensors"
   run_script status
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
 test_status_download_only_safetensors_regular_file_incomplete() { assert_only_safetensors_incomplete regular-file; }
 test_status_download_only_safetensors_link_outside_blobs_incomplete() { assert_only_safetensors_incomplete outside-link; }
+
+# One blob-backed safetensors file is enough, even next to a regular one (#45).
+test_status_download_only_safetensors_mixed_with_regular_file_complete() {
+  fake_complete_download
+  local snapshot
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
+  rm -f "${snapshot}"/*.safetensors.index.json
+  echo weights >"${snapshot}/extra.safetensors"
+  run_script status
+  assert_out_contains "nvidia/Qwen-A  complete"
+}
 
 # Required files: config.json in every repo; a tokenizer in Model ID repos only.
 # See docs/adr/0005-fixed-required-files.md.
