@@ -18,6 +18,8 @@ source "${SCRIPT_DIR}/lib/download.sh"
 source "${SCRIPT_DIR}/lib/metrics.sh"
 # shellcheck source=lib/serve.sh
 source "${SCRIPT_DIR}/lib/serve.sh"
+# shellcheck source=lib/tools.sh
+source "${SCRIPT_DIR}/lib/tools.sh"
 # shellcheck source=lib/ui.sh
 source "${SCRIPT_DIR}/lib/ui.sh"
 
