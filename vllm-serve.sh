@@ -47,7 +47,7 @@ check_draft() {
 
 # Succeed when a repo is fully present in the local HF cache (offline check).
 is_downloaded() {
-    local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard
+    local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard index ext
     [[ -f "${repo_dir}/refs/main" ]] || return 1
     rev="$(<"${repo_dir}/refs/main")"
     snapshot="${repo_dir}/snapshots/${rev}"
@@ -56,13 +56,18 @@ is_downloaded() {
     compgen -G "${repo_dir}/blobs/*.incomplete" >/dev/null && return 1
     # Every symlinked file must resolve to a blob.
     [[ -z "$(find -L "${snapshot}" -type l)" ]] || return 1
-    # Every shard listed in the weight index must be present.
-    if [[ -f "${snapshot}/model.safetensors.index.json" ]]; then
+    # Every shard listed in any weight index (*.index.json) must be present.
+    for index in "${snapshot}"/*.index.json; do
+        [[ -f "${index}" ]] || continue
         while IFS= read -r shard; do
             [[ -f "${snapshot}/${shard}" ]] || return 1
-        done < <(jq -r '.weight_map[]' "${snapshot}/model.safetensors.index.json" | sort -u)
-    fi
-    compgen -G "${snapshot}/*.safetensors" >/dev/null
+        done < <(jq -r '.weight_map[]?' "${index}" | sort -u)
+    done
+    # At least one weights file, in any supported format.
+    for ext in safetensors bin gguf pt pth ckpt onnx; do
+        compgen -G "${snapshot}/*.${ext}" >/dev/null && return 0
+    done
+    return 1
 }
 
 # Download module: what a Model ID needs and whether it is all present.

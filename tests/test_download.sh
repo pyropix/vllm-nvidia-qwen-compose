@@ -94,4 +94,55 @@ test_start_refuses_incomplete_blob() {
     assert_log_lacks "up --detach"
 }
 
+# Put a repo into the fake cache whose only weights file has the given name.
+fake_download_as() {
+    local snapshot
+    fake_download "$1"
+    snapshot="$(fake_repo_dir "$1")/snapshots/rev1"
+    rm "${snapshot}/model.safetensors"
+    ln -s ../../blobs/w "${snapshot}/$2"
+}
+
+test_status_download_bin_weights_complete() {
+    fake_download nvidia/Qwen-A
+    fake_download_as z-lab/Draft-A weights.bin
+    serve status
+    assert_out_contains "Download   complete"
+}
+
+test_status_download_gguf_weights_complete() {
+    fake_download nvidia/Qwen-A
+    fake_download_as z-lab/Draft-A weights.gguf
+    serve status
+    assert_out_contains "Download   complete"
+}
+
+test_status_download_without_weight_files_incomplete() {
+    fake_complete_download
+    local snapshot
+    snapshot="$(fake_repo_dir z-lab/Draft-A)/snapshots/rev1"
+    rm "${snapshot}/model.safetensors"
+    echo '{}' >"${snapshot}/config.json"
+    serve status
+    assert_out_contains "incomplete (missing: z-lab/Draft-A)"
+}
+
+test_status_download_missing_shard_in_bin_index() {
+    fake_complete_download
+    echo '{"weight_map":{"a":"model.safetensors","b":"pytorch_model-2.bin"}}' \
+        >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/pytorch_model.bin.index.json"
+    serve status
+    assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_all_shards_present_in_bin_index() {
+    fake_complete_download
+    local snapshot
+    snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+    ln -s ../../blobs/w "${snapshot}/pytorch_model-1.bin"
+    echo '{"weight_map":{"a":"pytorch_model-1.bin"}}' >"${snapshot}/pytorch_model.bin.index.json"
+    serve status
+    assert_out_contains "Download   complete"
+}
+
 run_tests
