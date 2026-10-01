@@ -261,6 +261,12 @@ cmd_status() {
     printf "${fmt}" "Context" "${context:--}"
     printf "${fmt}" "Download" "${download}"
     echo ""
+    echo "Downloads (all Model IDs in ${MODELS_FILE})"
+    local id
+    while IFS= read -r id; do
+        printf "  %s  %s\n" "${id}" "$(download_state "${id}")"
+    done < <(jq -r '.[].id' "${MODELS_FILE}")
+    echo ""
     echo "Running"
     local running=() svc entry model_id variant found
     while IFS= read -r svc; do
@@ -477,7 +483,7 @@ cmd_unlink() {
 usage() {
     echo "Usage: $(basename "$0") [status|select|download|start|logs|ready|stop|reset-metrics|pi|link|unlink]"
     echo ""
-    echo "  status    Show selected model/variant/Draft and the running container"
+    echo "  status    Show selected model/variant/Draft, every Model ID's Download state and the running container"
     echo "  select    Pick model variant and write to .env.vllm"
     echo "  download  Login to HF and download model weights (and Draft model)"
     echo "  start     Pull image and start the vLLM container"
