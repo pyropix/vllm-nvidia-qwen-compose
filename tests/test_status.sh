@@ -101,18 +101,25 @@ test_cmd_ready_lists_models_when_ready() {
   [[ "${out}" == $'vLLM is ready. Models:\n  nvidia/Qwen-A\n  other' ]] || fail "output: ${out}"
 }
 
+# Run cmd_ready with args $@, setting READY_OUT (stdout), READY_ERR (stderr)
+# and READY_STATUS (exit code).
+capture_ready() {
+  local err="${SANDBOX}/ready-stderr"
+  READY_STATUS=0
+  READY_OUT="$(cmd_ready "$@" 2>"${err}")" || READY_STATUS=$?
+  READY_ERR="$(cat "${err}")"
+}
+
 # Without --wait, a failed check returns 1; $1 is the curl exit code.
 assert_cmd_ready_fails_with_curl_exit() {
   use_status
   STUB_CURL_FAIL=1 STUB_CURL_EXIT="$1"
   export STUB_CURL_FAIL STUB_CURL_EXIT
-  local out err status=0
-  err="${SANDBOX}/ready-stderr"
-  out="$(cmd_ready 2>"${err}")" || status=$?
-  [[ "${status}" == 1 ]] || fail "exit ${status}"
-  [[ -z "${out}" ]] || fail "stdout: ${out}"
-  [[ "$(cat "${err}")" == "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." ]] ||
-    fail "stderr: $(cat "${err}")"
+  capture_ready
+  [[ "${READY_STATUS}" == 1 ]] || fail "exit ${READY_STATUS}"
+  [[ -z "${READY_OUT}" ]] || fail "stdout: ${READY_OUT}"
+  [[ "${READY_ERR}" == "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." ]] ||
+    fail "stderr: ${READY_ERR}"
 }
 
 # curl exits 22 when vLLM answers with an HTTP error (not ready yet).
@@ -127,15 +134,13 @@ test_cmd_ready_wait_polls_until_ready() {
   echo '{"data":[{"id":"nvidia/Qwen-A"}]}' >"${STUB_CURL_OUT}"
   STUB_CURL_FAIL_TIMES=2 STUB_CURL_EXIT=7
   export STUB_CURL_FAIL_TIMES STUB_CURL_EXIT
-  local out err status=0
-  err="${SANDBOX}/ready-stderr"
-  out="$(cmd_ready --wait 2>"${err}")" || status=$?
-  [[ "${status}" == 0 ]] || fail "exit ${status}"
+  capture_ready --wait
+  [[ "${READY_STATUS}" == 0 ]] || fail "exit ${READY_STATUS}"
   [[ "$(grep -c '^curl ' "${STUB_LOG}")" == 3 ]] || fail "polls: $(stub_log)"
   [[ "$(grep '^sleep ' "${STUB_LOG}")" == $'sleep 5\nsleep 5' ]] || fail "sleeps: $(stub_log)"
   # Progress goes to stderr; stdout holds only the result.
-  [[ "$(grep -c '^Waiting for vLLM' "${err}")" == 2 ]] || fail "stderr: $(cat "${err}")"
-  [[ "${out}" == $'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "stdout: ${out}"
+  [[ "$(grep -c '^Waiting for vLLM' <<<"${READY_ERR}")" == 2 ]] || fail "stderr: ${READY_ERR}"
+  [[ "${READY_OUT}" == $'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "stdout: ${READY_OUT}"
 }
 
 # A malformed /v1/models response is an error, not a ready vLLM.
