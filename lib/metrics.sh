@@ -1,8 +1,7 @@
 # shellcheck shell=bash
 # Metrics module: the scrape target of the current Run and the metrics history.
 # Sourced by vllm-serve.sh.
-# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
-# Requires: TARGETS_FILE VLLM_ADDR load_env compose require_jq running_vllm_services
+require_defined TARGETS_FILE VLLM_ADDR load_env compose require_jq running_vllm_services || return 1
 
 # Metrics module: label vLLM's scrape target with the current Run.
 # A Run is identified by its start time, Model ID and Variant; the label

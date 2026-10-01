@@ -6,14 +6,18 @@ ENV_FILE="${SCRIPT_DIR}/.env.vllm"
 MODELS_FILE="${SCRIPT_DIR}/models.json"
 TARGETS_FILE="${SCRIPT_DIR}/monitoring/targets/vllm.json"
 
+# Modules guard their dependencies when sourced (lib/require.sh), so each one
+# comes after the modules it requires.
+# shellcheck source=lib/require.sh
+source "${SCRIPT_DIR}/lib/require.sh"
 # shellcheck source=lib/registry.sh
 source "${SCRIPT_DIR}/lib/registry.sh"
-# shellcheck source=lib/status.sh
-source "${SCRIPT_DIR}/lib/status.sh"
 # shellcheck source=lib/runtime.sh
 source "${SCRIPT_DIR}/lib/runtime.sh"
 # shellcheck source=lib/download.sh
 source "${SCRIPT_DIR}/lib/download.sh"
+# shellcheck source=lib/status.sh
+source "${SCRIPT_DIR}/lib/status.sh"
 # shellcheck source=lib/metrics.sh
 source "${SCRIPT_DIR}/lib/metrics.sh"
 # shellcheck source=lib/serve.sh

@@ -114,6 +114,22 @@ run_script() {
 
 stub_log() { cat "${STUB_LOG}"; }
 
+# Source every module of DIR (a repo or sandbox copy) the way vllm-serve.sh
+# does: its variables (unless already set) pointing at the sandbox, then
+# lib/require.sh and the modules in its order, so every guard passes.
+source_modules() {
+  local dir="$1" module
+  SCRIPT_DIR="${SCRIPT_DIR:-${SANDBOX}}"
+  ENV_FILE="${ENV_FILE:-${SANDBOX}/.env.vllm}"
+  MODELS_FILE="${MODELS_FILE:-${SANDBOX}/models.json}"
+  TARGETS_FILE="${TARGETS_FILE:-${SANDBOX}/monitoring/targets/vllm.json}"
+  # shellcheck disable=SC2016  # matches the literal ${SCRIPT_DIR}
+  while IFS= read -r module; do
+    # shellcheck source=/dev/null
+    source "${dir}/${module}"
+  done < <(sed -n 's|^source "${SCRIPT_DIR}/\(lib/[a-z_]*\.sh\)"$|\1|p' "${dir}/vllm-serve.sh")
+}
+
 # Record a failure. Tests run in a subshell (see run_tests), so the flag is a file.
 fail() {
   echo "    FAIL: $*" >&2

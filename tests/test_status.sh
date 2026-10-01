@@ -5,14 +5,12 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 # Source the module from the sandbox copy.
 use_status() {
-  # shellcheck source=lib/status.sh
-  source "${SANDBOX}/lib/status.sh"
+  source_modules "${SANDBOX}"
 }
 
 # ADR 0003: every copy of the vLLM address matches VLLM_ADDR. Lists all that don't.
 test_vllm_addr_copies_match() {
-  # shellcheck source=lib/status.sh
-  source "${REPO_DIR}/lib/status.sh"
+  source_modules "${REPO_DIR}"
   local url="http://${VLLM_ADDR}/v1" port="${VLLM_ADDR##*:}" compose="${REPO_DIR}/docker-compose.yml"
   local bad=() hits ports p
   hits="$(grep -rlF "${VLLM_ADDR}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"

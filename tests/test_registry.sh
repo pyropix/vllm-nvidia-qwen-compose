@@ -6,6 +6,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # Source the module from the sandbox copy, pointing it at the sandbox registry.
 use_registry() {
   MODELS_FILE="${SANDBOX}/models.json"
+  # shellcheck source=lib/require.sh
+  source "${SANDBOX}/lib/require.sh"
   # shellcheck source=lib/registry.sh
   source "${SANDBOX}/lib/registry.sh"
 }
