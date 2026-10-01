@@ -34,12 +34,28 @@ get_draft() {
     jq -r --arg id "$1" '.[] | select(.id == $id) | .draft // empty' "${MODELS_FILE}"
 }
 
-# Fail when the registry declares a Draft model that .env.vllm does not carry.
-check_draft() {
+# Print the context window of a Model ID (empty when the registry lacks one).
+get_context() {
+    require_jq
+    jq -r --arg id "$1" '.[] | select(.id == $id) | .context // empty' "${MODELS_FILE}"
+}
+
+# Fail when .env.vllm disagrees with the registry on the Draft model or context window.
+check_registry_env() {
     local expected
     expected="$(get_draft "${MODEL_ID}")"
     if [[ "${expected}" != "${DRAFT_MODEL_ID:-}" ]]; then
         echo "Error: DRAFT_MODEL_ID in ${ENV_FILE} (${DRAFT_MODEL_ID:-unset}) does not match ${MODELS_FILE} (${expected:-none})." >&2
+        echo "Run $(basename "$0") select again." >&2
+        exit 1
+    fi
+    expected="$(get_context "${MODEL_ID}")"
+    if [[ -z "${expected}" ]]; then
+        echo "Error: ${MODELS_FILE} has no context window for ${MODEL_ID}." >&2
+        exit 1
+    fi
+    if [[ "${expected}" != "${MAX_MODEL_LEN:-}" ]]; then
+        echo "Error: MAX_MODEL_LEN in ${ENV_FILE} (${MAX_MODEL_LEN:-unset}) does not match ${MODELS_FILE} (${expected:-none})." >&2
         echo "Run $(basename "$0") select again." >&2
         exit 1
     fi
@@ -198,7 +214,7 @@ cmd_select() {
     echo ""
     echo "Select the model to download and serve:"
     echo ""
-    local entry model_id variant="" draft
+    local entry model_id variant="" draft context
     select entry in "${models[@]}"; do
         [[ -n "${entry}" ]] && break
         echo "Invalid selection. Enter a number between 1 and ${#models[@]}."
@@ -207,10 +223,12 @@ cmd_select() {
     model_id="${entry%%:*}"
     [[ "${entry}" == *:* ]] && variant="${entry#*:}"
     draft="$(get_draft "${model_id}")"
+    context="$(get_context "${model_id}")"
     set_env_var MODEL_ID "${model_id}"
     set_env_var MODEL_VARIANT "${variant}"
     set_env_var DRAFT_MODEL_ID "${draft}"
-    echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant} DRAFT_MODEL_ID=${draft}"
+    set_env_var MAX_MODEL_LEN "${context}"
+    echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant} DRAFT_MODEL_ID=${draft} MAX_MODEL_LEN=${context}"
 }
 
 VLLM_MODELS_URL="http://localhost:8000/v1/models"
@@ -235,6 +253,7 @@ cmd_status() {
         download="$(download_state "${MODEL_ID}")"
     fi
     printf "${fmt}" "Draft" "${draft:--}"
+    printf "${fmt}" "Context" "${MAX_MODEL_LEN:--}"
     printf "${fmt}" "Download" "${download}"
     echo ""
     echo "Running"
@@ -302,7 +321,7 @@ cmd_download() {
         echo "Error: HF_TOKEN not set in ${ENV_FILE}." >&2
         exit 1
     fi
-    check_draft
+    check_registry_env
     local missing repo
     missing="$(download_missing "${MODEL_ID}")"
     if [[ -z "${missing}" ]]; then
@@ -322,7 +341,7 @@ cmd_download() {
 
 cmd_start() {
     load_env
-    check_draft
+    check_registry_env
     check_downloaded
     local service
     service="$(get_service)"

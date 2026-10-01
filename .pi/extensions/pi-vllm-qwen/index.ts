@@ -5,24 +5,17 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 /**
  * Project provider extension: registers the local vLLM OpenAI-compatible
  * endpoint (see docker-compose.yml, port 8000, host networking) as provider
- * "vllm". Model IDs are read from the repo root models.json so this stays in
- * sync with the compose profiles.
+ * "vllm". Model IDs and context windows are read from the repo root models.json so
+ * this stays in sync with the compose profiles.
  */
 
 const BASE_URL = "http://localhost:8000/v1";
 
-// Per-model context limits from docker-compose.yml (--max-model-len).
-const CONTEXT_WINDOWS: Record<string, number> = {
-  "nvidia/Qwen3.6-27B-NVFP4": 262144,
-  "nvidia/Qwen3.6-35B-A3B-NVFP4": 262144,
-  "nvidia/Qwen3.8-27B-NVFP4": 262144,
-  "unsloth/Qwen3.8-27B-NVFP4": 1048576,
-};
-const DEFAULT_CONTEXT_WINDOW = 262144;
 const MAX_TOKENS = 32768;
 
 interface RepoModelEntry {
   id: string;
+  context: number;
 }
 
 function repoRoot(): string {
@@ -37,10 +30,10 @@ function repoRoot(): string {
   return join(dir, "..", "..", "..");
 }
 
-function loadModelIds(): string[] {
+function loadModels(): RepoModelEntry[] {
   const modelsFile = join(repoRoot(), "models.json");
   const data = JSON.parse(readFileSync(modelsFile, "utf8")) as RepoModelEntry[];
-  return data.map((m) => m.id);
+  return data;
 }
 
 export default function (pi: ExtensionAPI) {
@@ -49,12 +42,12 @@ export default function (pi: ExtensionAPI) {
     baseUrl: BASE_URL,
     apiKey: "vllm", // dummy key; vLLM does not authenticate
     api: "openai-completions",
-    models: loadModelIds().map((id) => ({
+    models: loadModels().map(({ id, context }) => ({
       id,
       name: id,
       input: ["text", "image"] as ("text" | "image")[],
       reasoning: true,
-      contextWindow: CONTEXT_WINDOWS[id] ?? DEFAULT_CONTEXT_WINDOW,
+      contextWindow: context,
       maxTokens: MAX_TOKENS,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     })),

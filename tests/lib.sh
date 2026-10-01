@@ -36,9 +36,9 @@ sandbox_new() {
     cp "${REPO_DIR}/vllm-serve.sh" "${SANDBOX}/vllm-serve.sh"
     cat >"${SANDBOX}/models.json" <<'JSON'
 [
-  {"id": "nvidia/Qwen-A", "draft": "z-lab/Draft-A", "variants": ["fast"]},
-  {"id": "unsloth/Qwen-B"},
-  {"id": "unsloth/Qwen-C", "draft": "z-lab/Draft-A"}
+  {"id": "nvidia/Qwen-A", "context": 262144, "draft": "z-lab/Draft-A", "variants": ["fast"]},
+  {"id": "unsloth/Qwen-B", "context": 1048576},
+  {"id": "unsloth/Qwen-C", "context": 65536, "draft": "z-lab/Draft-A"}
 ]
 JSON
     {
@@ -53,6 +53,7 @@ HF_TOKEN=test-token
 MODEL_ID=nvidia/Qwen-A
 MODEL_VARIANT=
 DRAFT_MODEL_ID=z-lab/Draft-A
+MAX_MODEL_LEN=262144
 ENV
     export PATH="${STUBS_DIR}:${ORIGINAL_PATH}"
     # Never let a missing stub fall through to the real tool.
@@ -79,9 +80,11 @@ fake_download() {
 # Select a Model ID in the sandbox .env.vllm; its Draft model comes from the
 # sandbox registry so fixtures cannot drift from it.
 select_model() {
-    local draft
+    local draft context
     draft="$(jq -r --arg id "$1" '.[] | select(.id == $id) | .draft // empty' "${SANDBOX}/models.json")"
-    sed -i -e "s|^MODEL_ID=.*|MODEL_ID=$1|" -e "s|^DRAFT_MODEL_ID=.*|DRAFT_MODEL_ID=${draft}|" "${SANDBOX}/.env.vllm"
+    context="$(jq -r --arg id "$1" '.[] | select(.id == $id) | .context // empty' "${SANDBOX}/models.json")"
+    sed -i -e "s|^MODEL_ID=.*|MODEL_ID=$1|" -e "s|^DRAFT_MODEL_ID=.*|DRAFT_MODEL_ID=${draft}|" \
+        -e "s|^MAX_MODEL_LEN=.*|MAX_MODEL_LEN=${context:-262144}|" "${SANDBOX}/.env.vllm"
 }
 
 # Path of a repo's directory in the fake HF cache.

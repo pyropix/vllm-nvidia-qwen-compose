@@ -38,7 +38,7 @@ services:
       --moe-backend marlin
       --kv-cache-dtype auto
       --gpu-memory-utilization "0.4"
-      --max-model-len "262144"
+      --max-model-len "${MAX_MODEL_LEN:-}"
       --max-num-batched-tokens "8192"
       --max-num-seqs "3"
       --enable-chunked-prefill
@@ -67,7 +67,7 @@ services:
       --attention-backend flashinfer
       --moe-backend marlin
       --gpu-memory-utilization "0.4"
-      --max-model-len "262144"
+      --max-model-len "${MAX_MODEL_LEN:-}"
       --max-num-seqs "4"
       --max-num-batched-tokens "8192"
       --enable-chunked-prefill
@@ -95,7 +95,7 @@ services:
       --trust-remote-code
       --kv-cache-dtype fp8
       --gpu-memory-utilization "0.70"
-      --max-model-len "262144"
+      --max-model-len "${MAX_MODEL_LEN:-}"
       --max-num-seqs "8"
       --max-num-batched-tokens "16384"
       --enable-chunked-prefill
@@ -120,7 +120,7 @@ services:
       --trust-remote-code
       --kv-cache-dtype fp8
       --gpu-memory-utilization "0.70"
-      --max-model-len "262144"
+      --max-model-len "${MAX_MODEL_LEN:-}"
       --max-num-seqs "8"
       --max-num-batched-tokens "16384"
       --enable-chunked-prefill
@@ -148,7 +148,7 @@ services:
       --tensor-parallel-size "1"
       --trust-remote-code
       --gpu-memory-utilization "0.70"
-      --max-model-len "1048576"
+      --max-model-len "${MAX_MODEL_LEN:-}"
       --max-num-seqs "6"
       --max-num-batched-tokens "16384"
       --enable-chunked-prefill

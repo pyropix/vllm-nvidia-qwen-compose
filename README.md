@@ -48,7 +48,7 @@ curl http://localhost:8000/v1/chat/completions \
 
 ## Models
 
-The list of models offered by `./vllm-serve.sh select` is defined in [`models.json`](models.json) — one entry per `id`, with optional `variants` (parallel services for the same model) and an optional `draft` model for speculative decoding. `select` writes `MODEL_ID`, `MODEL_VARIANT` and `DRAFT_MODEL_ID` to `.env.vllm`, and `download` fetches the draft model too. Reading the file needs `jq`. To add a new model or variant, add an entry there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
+The list of models offered by `./vllm-serve.sh select` is defined in [`models.json`](models.json) — one entry per `id`, with a `context` window in tokens, optional `variants` (parallel services for the same model) and an optional `draft` model for speculative decoding. `select` writes `MODEL_ID`, `MODEL_VARIANT`, `DRAFT_MODEL_ID` and `MAX_MODEL_LEN` to `.env.vllm` (compose passes `MAX_MODEL_LEN` as `--max-model-len`, and the pi extension reads `context` for its `contextWindow`), and `download` fetches the draft model too. Reading the file needs `jq`. To add a new model or variant, add an entry there, including its `context` (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
 
 | Variant                      | Hugging Face                                                                          | Notes                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------- |
