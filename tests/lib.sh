@@ -83,17 +83,13 @@ fake_repo_dir() {
 }
 
 # Run vllm-serve.sh in the sandbox; sets OUT (stdout+stderr) and STATUS.
-serve() {
-    set +e
-    OUT="$(cd "${SANDBOX}" && ./vllm-serve.sh "$@" 2>&1 </dev/null)"
-    STATUS=$?
-    set -e
-}
-
-# Same, with text fed on stdin.
-serve_stdin() {
-    local input="$1"
-    shift
+# Stdin is empty unless the first arguments are `--stdin TEXT`.
+run_script() {
+    local input=""
+    if [[ "${1:-}" == "--stdin" ]]; then
+        input="$2"
+        shift 2
+    fi
     set +e
     OUT="$(cd "${SANDBOX}" && ./vllm-serve.sh "$@" 2>&1 <<<"${input}")"
     STATUS=$?
