@@ -85,6 +85,27 @@ test_download_skips_complete_download() {
     assert_log_lacks "hf download"
 }
 
+test_download_logs_out_after_success() {
+    serve download
+    assert_status 0
+    assert_log_contains "hf auth logout"
+}
+
+test_failed_download_logs_out() {
+    STUB_HF_FAIL="download z-lab/Draft-A"
+    serve download
+    assert_status 1
+    assert_log_contains "hf download z-lab/Draft-A"
+    assert_log_contains "hf auth logout"
+}
+
+test_failed_download_does_not_log_out_when_login_failed() {
+    STUB_HF_FAIL="auth login"
+    serve download
+    assert_status 1
+    assert_log_lacks "hf download"
+}
+
 test_start_refuses_incomplete_blob() {
     fake_complete_download
     touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/abc.incomplete"
