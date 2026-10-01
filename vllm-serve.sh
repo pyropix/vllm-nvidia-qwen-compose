@@ -6,51 +6,19 @@ ENV_FILE="${SCRIPT_DIR}/.env.vllm"
 MODELS_FILE="${SCRIPT_DIR}/models.json"
 TARGETS_FILE="${SCRIPT_DIR}/monitoring/targets/vllm.json"
 
-require_jq() {
-    if ! command -v jq &>/dev/null; then
-        echo "Error: jq is required to read ${MODELS_FILE}." >&2
-        echo "Install it with: ./setup-cli.sh jq-install" >&2
-        exit 1
-    fi
-}
-
-# Fill the 'models' array with one "MODEL_ID[:variant]" entry per Service.
-load_models() {
-    if [[ ! -f "${MODELS_FILE}" ]]; then
-        echo "Error: ${MODELS_FILE} not found." >&2
-        exit 1
-    fi
-    require_jq
-    models=()
-    mapfile -t models < <(jq -r '.[] | .id, (.id + ":" + (.variants // [])[])' "${MODELS_FILE}")
-    if [[ "${#models[@]}" -eq 0 ]]; then
-        echo "Error: no models defined in ${MODELS_FILE}." >&2
-        exit 1
-    fi
-}
-
-# Print the Draft model of a Model ID (empty when it has none).
-get_draft() {
-    require_jq
-    jq -r --arg id "$1" '.[] | select(.id == $id) | .draft // empty' "${MODELS_FILE}"
-}
-
-# Print the context window of a Model ID (empty when the registry lacks one).
-get_context() {
-    require_jq
-    jq -r --arg id "$1" '.[] | select(.id == $id) | .context // empty' "${MODELS_FILE}"
-}
+# shellcheck source=lib/registry.sh
+source "${SCRIPT_DIR}/lib/registry.sh"
 
 # Fail when .env.vllm disagrees with the registry on the Draft model or context window.
 check_registry_env() {
     local expected
-    expected="$(get_draft "${MODEL_ID}")"
+    expected="$(registry_draft "${MODEL_ID}")"
     if [[ "${expected}" != "${DRAFT_MODEL_ID:-}" ]]; then
         echo "Error: DRAFT_MODEL_ID in ${ENV_FILE} (${DRAFT_MODEL_ID:-unset}) does not match ${MODELS_FILE} (${expected:-none})." >&2
         echo "Run $(basename "$0") select again." >&2
         exit 1
     fi
-    expected="$(get_context "${MODEL_ID}")"
+    expected="$(registry_context "${MODEL_ID}")"
     if [[ -z "${expected}" ]]; then
         echo "Error: ${MODELS_FILE} has no context window for ${MODEL_ID}." >&2
         exit 1
@@ -95,7 +63,7 @@ is_downloaded() {
 download_repos() {
     local draft
     echo "$1"
-    draft="$(get_draft "$1")"
+    draft="$(registry_draft "$1")"
     [[ -z "${draft}" ]] || echo "${draft}"
 }
 
@@ -211,20 +179,20 @@ set_env_var() {
 
 cmd_select() {
     load_env
-    load_models
+    registry_load
     echo ""
     echo "Select the model to download and serve:"
     echo ""
-    local entry model_id variant="" draft context
+    local entry model_id variant draft context
     select entry in "${models[@]}"; do
         [[ -n "${entry}" ]] && break
         echo "Invalid selection. Enter a number between 1 and ${#models[@]}."
     done
-    # Entries are 'MODEL_ID' or 'MODEL_ID:variant'.
-    model_id="${entry%%:*}"
-    [[ "${entry}" == *:* ]] && variant="${entry#*:}"
-    draft="$(get_draft "${model_id}")"
-    context="$(get_context "${model_id}")"
+    registry_parse_entry "${entry}"
+    model_id="${ENTRY_MODEL_ID}"
+    variant="${ENTRY_VARIANT}"
+    draft="$(registry_draft "${model_id}")"
+    context="$(registry_context "${model_id}")"
     set_env_var MODEL_ID "${model_id}"
     set_env_var MODEL_VARIANT "${variant}"
     set_env_var DRAFT_MODEL_ID "${draft}"
@@ -241,7 +209,7 @@ query_models() {
 
 cmd_status() {
     load_env
-    load_models
+    registry_load
     local fmt="  %-10s %s\n"
     echo ""
     echo "Selected (${ENV_FILE})"
@@ -250,8 +218,8 @@ cmd_status() {
     # Draft and Download both come from the registry, not from a possibly stale .env.vllm.
     local draft="" context="" download="-"
     if [[ -n "${MODEL_ID:-}" ]]; then
-        draft="$(get_draft "${MODEL_ID}")"
-        context="$(get_context "${MODEL_ID}")"
+        draft="$(registry_draft "${MODEL_ID}")"
+        context="$(registry_context "${MODEL_ID}")"
         download="$(download_state "${MODEL_ID}")"
     fi
     printf "${fmt}" "Draft" "${draft:--}"
@@ -271,15 +239,15 @@ cmd_status() {
     for svc in "${running[@]}"; do
         found=""
         for entry in "${models[@]}"; do
-            model_id="${entry%%:*}"
-            variant=""
-            [[ "${entry}" == *:* ]] && variant="${entry#*:}"
+            registry_parse_entry "${entry}"
+            model_id="${ENTRY_MODEL_ID}"
+            variant="${ENTRY_VARIANT}"
             if [[ "$(derive_service "${model_id}" "${variant}")" == "${svc}" ]]; then
                 found=1
                 printf "${fmt}" "Container" "${svc}"
                 printf "${fmt}" "Model" "${model_id}"
                 printf "${fmt}" "Variant" "${variant:--}"
-                printf "${fmt}" "Draft" "$(get_draft "${model_id}")"
+                printf "${fmt}" "Draft" "$(registry_draft "${model_id}")"
                 [[ "${model_id}" == "${MODEL_ID:-}" && "${variant}" == "${MODEL_VARIANT:-}" ]] \
                     && printf "${fmt}" "Selected" "yes" \
                     || printf "${fmt}" "Selected" "no (differs from selection)"
