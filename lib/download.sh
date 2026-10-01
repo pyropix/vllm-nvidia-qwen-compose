@@ -37,14 +37,15 @@ is_downloaded() {
   while IFS= read -r link; do
     [[ "${repo_dir}/refs/main" -nt "${link}" ]] || return 1
   done < <(find "${repo_dir}/blobs" -name '*.incomplete' 2>/dev/null)
-  # Every shard listed in a safetensors weight index must be present. A malformed
+  # Every shard listed in a safetensors weight index must be present as a
+  # snapshot symlink resolved to a blob, like the required files below. A malformed
   # index (not JSON, or no non-empty weight_map of shard names) is incomplete.
   for index in "${snapshot}"/*.safetensors.index.json; do
     [[ -f "${index}" ]] || continue
     jq -e '.weight_map | type == "object" and length > 0 and all(.[]; type == "string")' \
       "${index}" >/dev/null 2>&1 || return 1
     while IFS= read -r shard; do
-      [[ -f "${snapshot}/${shard}" ]] || return 1
+      is_cached_file "${snapshot}/${shard}" "${repo_dir}/blobs" || return 1
     done < <(jq -r '.weight_map[]' "${index}" | sort -u)
   done
   # A fixed set of required files, each a snapshot symlink resolved to a blob
