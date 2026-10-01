@@ -24,6 +24,15 @@
           "reasoning": true
         },
         {
+          "id": "nvidia/Qwen3.8-27B-NVFP4",
+          "contextWindow": 262144,
+          "input": [
+            "text",
+            "image"
+          ],
+          "reasoning": true
+        },
+        {
           "id": "unsloth/Qwen3.8-27B-NVFP4",
           "contextWindow": 1048576,
           "input": [
