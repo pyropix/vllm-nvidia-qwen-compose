@@ -25,7 +25,7 @@
         },
         {
           "id": "unsloth/Qwen3.8-27B-NVFP4",
-          "contextWindow": 262144,
+          "contextWindow": 1048576,
           "input": [
             "text",
             "image"
