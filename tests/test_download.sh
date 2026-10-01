@@ -236,7 +236,8 @@ test_status_download_safetensors_weights_complete() {
 test_status_download_unsupported_weight_format_incomplete() {
     local ext
     for ext in bin gguf pt pth ckpt onnx; do
-        fake_complete_download
+        rm -rf "$(fake_repo_dir z-lab/Draft-A)" "$(fake_repo_dir nvidia/Qwen-A)"
+        fake_download nvidia/Qwen-A
         fake_download_as z-lab/Draft-A "weights.${ext}"
         run_script status
         assert_out_contains "incomplete (missing: z-lab/Draft-A)"
