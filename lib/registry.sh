@@ -35,6 +35,12 @@ registry_parse_entry() {
   return 0
 }
 
+# Print every Model ID in the registry, one per line (variants not repeated).
+registry_ids() {
+  require_jq
+  jq -r '.[].id' "${MODELS_FILE}"
+}
+
 # Print the Draft model of a Model ID (empty when it has none).
 registry_draft() {
   require_jq

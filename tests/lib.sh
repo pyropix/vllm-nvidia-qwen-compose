@@ -83,6 +83,12 @@ fake_download() {
   ln -s ../../blobs/w "${repo_dir}/snapshots/rev1/model.safetensors"
 }
 
+# Fully download nvidia/Qwen-A and its Draft model.
+fake_complete_download() {
+  fake_download nvidia/Qwen-A
+  fake_download z-lab/Draft-A
+}
+
 # Select a Model ID in the sandbox .env.vllm; its Draft model comes from the
 # sandbox registry so fixtures cannot drift from it.
 select_model() {

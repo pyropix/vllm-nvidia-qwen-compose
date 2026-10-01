@@ -33,6 +33,12 @@ test_load_fails_on_missing_registry() {
   [[ "${OUT}" == *"not found"* ]] || fail "output: ${OUT}"
 }
 
+test_ids_lists_each_model_id_once() {
+  use_registry
+  [[ "$(registry_ids)" == $'nvidia/Qwen-A\nunsloth/Qwen-B\nunsloth/Qwen-C' ]] \
+    || fail "ids: $(registry_ids)"
+}
+
 test_lookup_draft_and_context() {
   use_registry
   [[ "$(registry_draft nvidia/Qwen-A)" == "z-lab/Draft-A" ]] || fail "draft A"
