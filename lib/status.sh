@@ -94,6 +94,10 @@ cmd_status() {
 }
 
 # Check whether vLLM answers GET /v1/models; with --wait, poll until it does.
+# Streams: stdout carries only the result (the ready line and the Model IDs),
+# so `vllm-serve ready --wait | ...` gets the served models alone. Progress
+# ("Waiting for vLLM...") and the not-ready message go to stderr; the exit
+# status says ready (0) or not (1).
 cmd_ready() {
   local wait="" response ids
   [[ "${1:-}" == "--wait" ]] && wait=1
@@ -109,7 +113,7 @@ cmd_ready() {
       echo "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." >&2
       return 1
     fi
-    echo "Waiting for vLLM... (Ctrl+C to abort)"
+    echo "Waiting for vLLM... (Ctrl+C to abort)" >&2
     sleep 5
   done
 }
