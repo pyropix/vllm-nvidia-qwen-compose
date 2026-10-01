@@ -247,13 +247,14 @@ cmd_status() {
     printf "${fmt}" "Model" "${MODEL_ID:--}"
     printf "${fmt}" "Variant" "${MODEL_VARIANT:--}"
     # Draft and Download both come from the registry, not from a possibly stale .env.vllm.
-    local draft="" download="-"
+    local draft="" context="" download="-"
     if [[ -n "${MODEL_ID:-}" ]]; then
         draft="$(get_draft "${MODEL_ID}")"
+        context="$(get_context "${MODEL_ID}")"
         download="$(download_state "${MODEL_ID}")"
     fi
     printf "${fmt}" "Draft" "${draft:--}"
-    printf "${fmt}" "Context" "${MAX_MODEL_LEN:--}"
+    printf "${fmt}" "Context" "${context:--}"
     printf "${fmt}" "Download" "${download}"
     echo ""
     echo "Running"
