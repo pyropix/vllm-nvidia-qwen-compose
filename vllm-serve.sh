@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/.env.vllm"
 MODELS_FILE="${SCRIPT_DIR}/models.json"
+TARGETS_FILE="${SCRIPT_DIR}/monitoring/targets/vllm.json"
 
 require_jq() {
     if ! command -v jq &>/dev/null; then
@@ -302,6 +303,41 @@ cmd_download() {
     hf auth logout
 }
 
+# Metrics module: label vLLM's scrape target with the current Run.
+# A Run is identified by its start time, Model ID and Variant; the label
+# "run" combines them (e.g. "20261001-1430 nvidia/Qwen3.8-27B-NVFP4:instanttensor")
+# with the start time first so the newest Run sorts first in Grafana.
+write_run_target() {
+    require_jq
+    local run_start run tmp="${TARGETS_FILE}.tmp"
+    run_start="$(date +%Y%m%d-%H%M)"
+    run="${run_start} ${MODEL_ID}${MODEL_VARIANT:+:${MODEL_VARIANT}}"
+    mkdir -p "$(dirname "${TARGETS_FILE}")"
+    jq -n --arg id "${MODEL_ID}" --arg variant "${MODEL_VARIANT:-}" \
+        --arg run_start "${run_start}" --arg run "${run}" \
+        '[{targets: ["localhost:8000"],
+           labels: {model_id: $id, variant: $variant, run_start: $run_start, run: $run}}]' >"${tmp}"
+    # Rename so Prometheus never reads a half-written file.
+    mv "${tmp}" "${TARGETS_FILE}"
+}
+
+clear_run_target() {
+    rm -f "${TARGETS_FILE}"
+}
+
+# Print the running vLLM services (one per line).
+running_vllm_services() {
+    local svc
+    while IFS= read -r svc; do
+        [[ "${svc}" == vllm-* ]] && echo "${svc}"
+    done < <(docker compose \
+        --project-directory "${SCRIPT_DIR}" \
+        --env-file "${ENV_FILE}" \
+        --profile '*' \
+        ps --status running --format '{{.Service}}')
+    return 0
+}
+
 cmd_start() {
     load_env
     check_draft
@@ -340,6 +376,7 @@ cmd_start() {
         --env-file "${ENV_FILE}" \
         --profile "${profile}" \
         pull
+    write_run_target
     docker compose \
         --project-directory "${SCRIPT_DIR}" \
         --env-file "${ENV_FILE}" \
@@ -357,15 +394,55 @@ cmd_logs() {
         logs "${service}" --follow
 }
 
+# Stop vLLM, keeping Prometheus and Grafana up so the finished Run stays
+# browsable; --all takes monitoring down too (metrics history is kept).
 cmd_stop() {
     load_env
-    local profile
+    local profile service all=""
+    [[ "${1:-}" == "--all" ]] && all=1
     profile="$(get_profile)"
+    service="$(get_service)"
+    clear_run_target
+    if [[ -n "${all}" ]]; then
+        docker compose \
+            --project-directory "${SCRIPT_DIR}" \
+            --env-file "${ENV_FILE}" \
+            --profile "${profile}" \
+            down --remove-orphans
+    else
+        docker compose \
+            --project-directory "${SCRIPT_DIR}" \
+            --env-file "${ENV_FILE}" \
+            --profile "${profile}" \
+            rm --stop --force "${service}"
+    fi
+}
+
+# Delete all recorded metrics history (Prometheus and Grafana volumes).
+cmd_reset_metrics() {
+    load_env
+    local yes="" running answer
+    [[ "${1:-}" == "--yes" ]] && yes=1
+    running="$(running_vllm_services)"
+    if [[ -n "${running}" ]]; then
+        echo "Error: vLLM is running (${running//$'\n'/ }); its Run would lose its history." >&2
+        echo "Stop it first with $(basename "$0") stop." >&2
+        return 1
+    fi
+    if [[ -z "${yes}" ]]; then
+        read -r -p "Delete ALL metrics history (Prometheus and Grafana data)? [y/N] " answer || answer=""
+        if [[ "${answer}" != [yY] ]]; then
+            echo "Aborted."
+            return 1
+        fi
+    fi
+    clear_run_target
     docker compose \
         --project-directory "${SCRIPT_DIR}" \
         --env-file "${ENV_FILE}" \
-        --profile "${profile}" \
-        down --remove-orphans
+        --profile '*' \
+        down --volumes --remove-orphans
+    echo "Metrics history deleted. The next start begins with an empty history."
 }
 
 cmd_pi() {
@@ -398,7 +475,7 @@ cmd_unlink() {
 }
 
 usage() {
-    echo "Usage: $(basename "$0") [status|select|download|start|logs|ready|stop|pi|link|unlink]"
+    echo "Usage: $(basename "$0") [status|select|download|start|logs|ready|stop|reset-metrics|pi|link|unlink]"
     echo ""
     echo "  status    Show selected model/variant/Draft and the running container"
     echo "  select    Pick model variant and write to .env.vllm"
@@ -406,7 +483,9 @@ usage() {
     echo "  start     Pull image and start the vLLM container"
     echo "  logs      Tail the running container logs"
     echo "  ready     Check if vLLM answers GET /v1/models (--wait: poll until it does)"
-    echo "  stop      Stop and remove the container"
+    echo "  stop      Stop and remove the vLLM container; Prometheus and Grafana keep running"
+    echo "            (--all: stop them too; metrics history is kept)"
+    echo "  reset-metrics  Delete all metrics history (--yes: skip the prompt; refused while vLLM runs)"
     echo "  pi        Launch pi agent pointed at the local vLLM server"
     echo "  link      Symlink this script as 'vllm-serve' in ~/.local/bin"
     echo "  unlink    Remove the 'vllm-serve' symlink from ~/.local/bin"
@@ -415,7 +494,7 @@ usage() {
 }
 
 menu() {
-    local actions=("show status" "select model" "login & download model" "start vllm" "show logs" "check if vllm is ready" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
+    local actions=("show status" "select model" "login & download model" "start vllm" "show logs" "check if vllm is ready" "stop vllm" "stop vllm and monitoring" "reset metrics history" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
     cmd_status
     while true; do
         echo ""
@@ -433,6 +512,8 @@ menu() {
                 "show logs")      cmd_logs ;;
                 "check if vllm is ready") cmd_ready || true ;;
                 "stop vllm")      cmd_stop ;;
+                "stop vllm and monitoring") cmd_stop --all ;;
+                "reset metrics history") cmd_reset_metrics || true ;;
                 "start pi agent") cmd_pi ;;
                 "create 'vllm-serve' symlink") cmd_link ;;
                 "remove 'vllm-serve' symlink") cmd_unlink ;;
@@ -450,7 +531,8 @@ case "${1:-}" in
     start)          cmd_start ;;
     logs)           cmd_logs ;;
     ready)          cmd_ready "${2:-}" ;;
-    stop)           cmd_stop ;;
+    stop)           cmd_stop "${2:-}" ;;
+    reset-metrics)  cmd_reset_metrics "${2:-}" ;;
     pi)             cmd_pi ;;
     link)           cmd_link ;;
     unlink)         cmd_unlink ;;

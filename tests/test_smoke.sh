@@ -99,10 +99,11 @@ test_ready_fails_when_unreachable() {
     assert_out_contains "vLLM is not ready"
 }
 
-test_stop_takes_service_down() {
+test_stop_removes_only_the_vllm_service() {
     serve stop
     assert_status 0
-    assert_log_contains "--profile vllm-nv-qwen-A down --remove-orphans"
+    assert_log_contains "--profile vllm-nv-qwen-A rm --stop --force vllm-nv-qwen-A"
+    assert_log_lacks " down "
 }
 
 test_pi_launches_with_model() {
