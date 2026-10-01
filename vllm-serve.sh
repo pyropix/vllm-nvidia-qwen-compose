@@ -194,7 +194,10 @@ get_service() {
 # Run docker compose against this checkout and its .env.vllm. Callers pass
 # the rest (--profile, subcommand, ...).
 compose() {
-    docker compose \
+    # docker-compose.yml requires MAX_MODEL_LEN for every service (even inactive
+    # profiles), so a stale .env.vllm would break stop/status/down. The commands
+    # that serve guard it via check_registry_env; give the rest a placeholder.
+    MAX_MODEL_LEN="${MAX_MODEL_LEN:-0}" docker compose \
         --project-directory "${SCRIPT_DIR}" \
         --env-file "${ENV_FILE}" \
         "$@"
