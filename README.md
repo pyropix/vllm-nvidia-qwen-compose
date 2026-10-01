@@ -38,7 +38,7 @@ curl http://localhost:8000/v1/models
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "nvidia/Qwen3.6-35B-A3B-NVFP4",
+    "model": "nvidia/Qwen3.8-27B-NVFP4",
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 64
   }'
