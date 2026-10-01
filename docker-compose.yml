@@ -83,9 +83,9 @@ services:
       --default-chat-template-kwargs '{"enable_thinking": false, "enable_tool_call": true, "enable_tool_call_streaming": true}'
       --chat-template /root/chat_template.jinja
 
-  vllm-nv-qwen3.8-27B-NVFP4:
-    profiles: [vllm-nv-qwen3.8-27B-NVFP4]
-    container_name: vllm-nv-qwen3.8-27B-NVFP4
+  vllm-us-qwen3.8-27B-NVFP4:
+    profiles: [vllm-us-qwen3.8-27B-NVFP4]
+    container_name: vllm-us-qwen3.8-27B-NVFP4
     <<: *defaults
     environment:
       CUTE_DSL_ARCH: sm_121a

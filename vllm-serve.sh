@@ -39,14 +39,27 @@ get_service() {
         exit 1
     fi
     # Derive the docker-compose service/profile name from the Hugging Face
-    # MODEL_ID: strip the org prefix (before the first '/'), lowercase the
-    # leading character and prefix with 'vllm-nv-'.
-    #   e.g. nvidia/Qwen3.6-27B-NVFP4 -> vllm-nv-qwen3.6-27B-NVFP4
+    # MODEL_ID: map the org prefix (before the first '/') to a short tag
+    # (nvidia -> nv, unsloth -> us), strip the org, lowercase the leading
+    # character and prefix with 'vllm-<tag>-'.
+    #   e.g. nvidia/Qwen3.6-27B-NVFP4  -> vllm-nv-qwen3.6-27B-NVFP4
+    #        unsloth/Qwen3.8-27B-NVFP4 -> vllm-us-qwen3.8-27B-NVFP4
     # Any model listed in models.conf must follow this convention.
+    local org="${model_id%%/*}"
+    local tag
+    case "${org}" in
+        nvidia)  tag="nv" ;;
+        unsloth) tag="us" ;;
+        *)
+            echo "Error: unknown org '${org}' in MODEL_ID '${model_id}'." >&2
+            echo "Add it to the org-to-tag mapping in get_service()." >&2
+            exit 1
+            ;;
+    esac
     local name="${model_id#*/}"
     local first="${name:0:1}"
     first="${first,,}"
-    local service="vllm-nv-${first}${name:1}"
+    local service="vllm-${tag}-${first}${name:1}"
     # Guard against a derived name that has no matching compose service.
     local escaped="${service//./\\.}"
     if ! grep -Eq "^[[:space:]]+${escaped}:" "${SCRIPT_DIR}/docker-compose.yml"; then

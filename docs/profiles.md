@@ -1,6 +1,6 @@
 # Compose profiles and launch flags
 
-Each `MODEL_ID` in `models.conf` has its own compose service/profile of the same name, prefixed `vllm-nv-` — e.g. `vllm-nv-qwen3.6-27B-NVFP4`, `vllm-nv-qwen3.6-35B-A3B-NVFP4`, `vllm-nv-qwen3.8-27B-NVFP4`. `./vllm-serve.sh` maps `MODEL_ID` to the matching service/profile automatically; manual `docker compose` requires `--profile <service-name>`.
+Each `MODEL_ID` in `models.conf` has its own compose service/profile of the same name, prefixed `vllm-nv-` (org `nvidia`) or `vllm-us-` (org `unsloth`) — e.g. `vllm-nv-qwen3.6-27B-NVFP4`, `vllm-nv-qwen3.6-35B-A3B-NVFP4`, `vllm-nv-qwen3.8-27B-NVFP4`, `vllm-us-qwen3.8-27B-NVFP4`. `./vllm-serve.sh` maps `MODEL_ID` to the matching service/profile automatically; manual `docker compose` requires `--profile <service-name>`.
 
 ## Shared settings
 
