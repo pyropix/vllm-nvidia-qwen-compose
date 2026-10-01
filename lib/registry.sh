@@ -45,3 +45,25 @@ registry_context() {
     require_jq
     jq -r --arg id "$1" '.[] | select(.id == $id) | .context // empty' "${MODELS_FILE}"
 }
+
+# Print the docker-compose service name the registry stores for a Model ID and
+# optional variant (empty when the registry has none).
+registry_service() {
+    require_jq
+    jq -r --arg id "$1" --arg variant "${2:-}" '
+        .[] | select(.id == $id)
+        | if $variant == "" then .service
+          else (.variants // [])[] | select(.name == $variant) | .service end
+        // empty' "${MODELS_FILE}"
+}
+
+# Print "MODEL_ID<TAB>variant" for the registry entry that owns a service
+# (empty when no entry does).
+registry_lookup_service() {
+    require_jq
+    jq -r --arg svc "$1" '
+        .[] | . as $m
+        | ({id: $m.id, variant: "", service: $m.service},
+           (($m.variants // [])[] | {id: $m.id, variant: .name, service: .service}))
+        | select(.service == $svc) | [.id, .variant] | @tsv' "${MODELS_FILE}" | head -n 1
+}
