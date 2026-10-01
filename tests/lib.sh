@@ -27,7 +27,8 @@ sandbox_new() {
     cat >"${SANDBOX}/models.json" <<'JSON'
 [
   {"id": "nvidia/Qwen-A", "draft": "z-lab/Draft-A", "variants": ["fast"]},
-  {"id": "unsloth/Qwen-B"}
+  {"id": "unsloth/Qwen-B"},
+  {"id": "unsloth/Qwen-C", "draft": "z-lab/Draft-A"}
 ]
 JSON
     cat >"${SANDBOX}/docker-compose.yml" <<'YAML'
@@ -65,6 +66,16 @@ fake_download() {
     echo rev1 >"${repo_dir}/refs/main"
     echo weights >"${repo_dir}/blobs/w"
     ln -s ../../blobs/w "${repo_dir}/snapshots/rev1/model.safetensors"
+}
+
+# Select a Model ID (and its registry Draft model) in the sandbox .env.vllm.
+select_model() {
+    sed -i -e "s|^MODEL_ID=.*|MODEL_ID=$1|" -e "s|^DRAFT_MODEL_ID=.*|DRAFT_MODEL_ID=${2:-}|" "${SANDBOX}/.env.vllm"
+}
+
+# Path of a repo's directory in the fake HF cache.
+fake_repo_dir() {
+    echo "${HOME}/.cache/huggingface/hub/models--${1//\//--}"
 }
 
 # Run vllm-serve.sh in the sandbox; sets OUT (stdout+stderr) and STATUS.

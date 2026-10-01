@@ -65,16 +65,44 @@ is_downloaded() {
     compgen -G "${snapshot}/*.safetensors" >/dev/null
 }
 
+# Download module: what a Model ID needs and whether it is all present.
+# Print the repos a Model ID's Download needs: its weights, then its Draft model.
+download_repos() {
+    local draft
+    echo "$1"
+    draft="$(get_draft "$1")"
+    [[ -z "${draft}" ]] || echo "${draft}"
+}
+
+# Print the repos of a Model ID's Download that are not fully present (one per line).
+download_missing() {
+    local repo
+    while IFS= read -r repo; do
+        is_downloaded "${repo}" || echo "${repo}"
+    done < <(download_repos "$1")
+}
+
 # Fail when the Download of the selected Model ID (weights plus Draft model) is incomplete.
 check_downloaded() {
-    local repo
-    for repo in "${MODEL_ID}" ${DRAFT_MODEL_ID:+"${DRAFT_MODEL_ID}"}; do
-        if ! is_downloaded "${repo}"; then
-            echo "Error: ${repo} is not fully downloaded." >&2
-            echo "Run $(basename "$0") download first." >&2
-            exit 1
-        fi
-    done
+    local repo missing
+    missing="$(download_missing "${MODEL_ID}")"
+    [[ -z "${missing}" ]] && return 0
+    while IFS= read -r repo; do
+        echo "Error: ${repo} is not fully downloaded." >&2
+    done <<<"${missing}"
+    echo "Run $(basename "$0") download first." >&2
+    exit 1
+}
+
+# Print the Download state of a Model ID: "complete" or "incomplete (missing: ...)".
+download_state() {
+    local missing
+    missing="$(download_missing "$1")"
+    if [[ -z "${missing}" ]]; then
+        echo "complete"
+    else
+        echo "incomplete (missing: ${missing//$'\n'/ })"
+    fi
 }
 
 load_env() {
@@ -188,6 +216,7 @@ cmd_status() {
     printf "${fmt}" "Model" "${MODEL_ID:--}"
     printf "${fmt}" "Variant" "${MODEL_VARIANT:--}"
     printf "${fmt}" "Draft" "${DRAFT_MODEL_ID:--}"
+    [[ -z "${MODEL_ID:-}" ]] || printf "${fmt}" "Download" "$(download_state "${MODEL_ID}")"
     echo ""
     echo "Running"
     local running=() svc entry model_id variant found
@@ -259,11 +288,16 @@ cmd_download() {
         exit 1
     fi
     check_draft
-    hf auth login --token "${HF_TOKEN}"
-    hf download "${MODEL_ID}"
-    if [[ -n "${DRAFT_MODEL_ID:-}" ]]; then
-        hf download "${DRAFT_MODEL_ID}"
+    local missing repo
+    missing="$(download_missing "${MODEL_ID}")"
+    if [[ -z "${missing}" ]]; then
+        echo "${MODEL_ID} is already downloaded."
+        return 0
     fi
+    hf auth login --token "${HF_TOKEN}"
+    while IFS= read -r repo; do
+        hf download "${repo}"
+    done <<<"${missing}"
     unset HF_TOKEN
     hf auth logout
 }
