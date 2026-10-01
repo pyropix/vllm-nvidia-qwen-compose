@@ -70,7 +70,7 @@ test_start_fails_when_registry_has_no_service() {
     mv "${SANDBOX}/m.json" "${SANDBOX}/models.json"
     run_script start
     assert_status 1
-    assert_out_contains "no service"
+    assert_out_contains "has no service for MODEL_ID 'nvidia/Qwen-A'"
 }
 
 test_select_writes_env() {

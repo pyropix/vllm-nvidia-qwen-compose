@@ -252,7 +252,7 @@ cmd_status() {
     printf "${fmt}" "Download" "${download}"
     echo ""
     echo "Running"
-    local running=() svc model_id variant found
+    local running=() svc model_id variant owner
     while IFS= read -r svc; do
         [[ "${svc}" == vllm-* ]] && running+=("${svc}")
     done < <(compose --profile '*' ps --status running --format '{{.Service}}')
@@ -262,12 +262,12 @@ cmd_status() {
         return
     fi
     for svc in "${running[@]}"; do
-        found="$(registry_lookup_service "${svc}")"
-        if [[ -z "${found}" ]]; then
+        owner="$(registry_lookup_service "${svc}")"
+        if [[ -z "${owner}" ]]; then
             printf "${fmt}" "Container" "${svc} (not in models.json)"
             continue
         fi
-        IFS=$'\t' read -r model_id variant <<<"${found}"
+        IFS=$'\t' read -r model_id variant <<<"${owner}"
         printf "${fmt}" "Container" "${svc}"
         printf "${fmt}" "Model" "${model_id}"
         printf "${fmt}" "Variant" "${variant:--}"
