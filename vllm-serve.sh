@@ -22,7 +22,7 @@ load_models() {
     fi
     require_jq
     models=()
-    mapfile -t models < <(jq -r '.[] | .id, (.id + ":" + (.variants // [])[])' "${MODELS_FILE}")
+    mapfile -t models < <(jq -r '.[] | .id, (.id + ":" + (.variants // [])[].name)' "${MODELS_FILE}")
     if [[ "${#models[@]}" -eq 0 ]]; then
         echo "Error: no models defined in ${MODELS_FILE}." >&2
         exit 1
@@ -140,37 +140,26 @@ load_env() {
     source "${ENV_FILE}"
 }
 
-# Print the docker-compose service name for a Model ID and optional variant.
-derive_service() {
-    local model_id="$1" variant="${2:-}"
-    # Derive the docker-compose service/profile name from the Hugging Face
-    # MODEL_ID: map the org prefix (before the first '/') to a short tag
-    # (nvidia -> nv, unsloth -> us), strip the org, lowercase the leading
-    # character and prefix with 'vllm-<tag>-'.
-    #   e.g. nvidia/Qwen3.6-27B-NVFP4  -> vllm-nv-qwen3.6-27B-NVFP4
-    #        unsloth/Qwen3.8-27B-NVFP4 -> vllm-us-qwen3.8-27B-NVFP4
-    # Any model listed in models.json must follow this convention.
-    local org="${model_id%%/*}"
-    local tag
-    case "${org}" in
-        nvidia)  tag="nv" ;;
-        unsloth) tag="us" ;;
-        *)
-            echo "Error: unknown org '${org}' in MODEL_ID '${model_id}'." >&2
-            echo "Add it to the org-to-tag mapping in get_service()." >&2
-            exit 1
-            ;;
-    esac
-    local name="${model_id#*/}"
-    local first="${name:0:1}"
-    first="${first,,}"
-    local service="vllm-${tag}-${first}${name:1}"
-    # An optional MODEL_VARIANT (a 'variants' entry in models.json)
-    # selects a parallel service for the same model, e.g.
-    #   nvidia/Qwen3.8-27B-NVFP4 + variant instanttensor
-    #     -> vllm-nv-qwen3.8-27B-NVFP4-instanttensor
-    [[ -n "${variant}" ]] && service="${service}-${variant}"
-    echo "${service}"
+# Print the docker-compose service name the registry stores for a Model ID and
+# optional variant (empty when the registry has none).
+registry_service() {
+    require_jq
+    jq -r --arg id "$1" --arg variant "${2:-}" '
+        .[] | select(.id == $id)
+        | if $variant == "" then .service
+          else (.variants // [])[] | select(.name == $variant) | .service end
+        // empty' "${MODELS_FILE}"
+}
+
+# Print "MODEL_ID<TAB>variant" for the registry entry that owns a service
+# (empty when no entry does).
+registry_lookup_service() {
+    require_jq
+    jq -r --arg svc "$1" '
+        .[] | . as $m
+        | ({id: $m.id, variant: "", service: $m.service},
+           (($m.variants // [])[] | {id: $m.id, variant: .name, service: .service}))
+        | select(.service == $svc) | [.id, .variant] | @tsv' "${MODELS_FILE}" | head -n 1
 }
 
 get_service() {
@@ -180,12 +169,16 @@ get_service() {
         exit 1
     fi
     local service
-    service="$(derive_service "${model_id}" "${MODEL_VARIANT:-}")"
-    # Guard against a derived name that has no matching compose service.
+    service="$(registry_service "${model_id}" "${MODEL_VARIANT:-}")"
+    if [[ -z "${service}" ]]; then
+        echo "Error: ${MODELS_FILE} has no service for MODEL_ID '${model_id}'${MODEL_VARIANT:+ variant '${MODEL_VARIANT}'}." >&2
+        exit 1
+    fi
+    # Guard against a registry service name that has no matching compose service.
     local escaped="${service//./\\.}"
     if ! grep -Eq "^[[:space:]]+${escaped}:" "${SCRIPT_DIR}/docker-compose.yml"; then
         echo "Error: no docker-compose service '${service}' for MODEL_ID '${model_id}'." >&2
-        echo "Add a matching service to docker-compose.yml or fix the naming convention." >&2
+        echo "Add a matching service to docker-compose.yml or fix the service name in ${MODELS_FILE}." >&2
         exit 1
     fi
     echo "${service}"
@@ -259,7 +252,7 @@ cmd_status() {
     printf "${fmt}" "Download" "${download}"
     echo ""
     echo "Running"
-    local running=() svc entry model_id variant found
+    local running=() svc model_id variant found
     while IFS= read -r svc; do
         [[ "${svc}" == vllm-* ]] && running+=("${svc}")
     done < <(compose --profile '*' ps --status running --format '{{.Service}}')
@@ -269,24 +262,19 @@ cmd_status() {
         return
     fi
     for svc in "${running[@]}"; do
-        found=""
-        for entry in "${models[@]}"; do
-            model_id="${entry%%:*}"
-            variant=""
-            [[ "${entry}" == *:* ]] && variant="${entry#*:}"
-            if [[ "$(derive_service "${model_id}" "${variant}")" == "${svc}" ]]; then
-                found=1
-                printf "${fmt}" "Container" "${svc}"
-                printf "${fmt}" "Model" "${model_id}"
-                printf "${fmt}" "Variant" "${variant:--}"
-                printf "${fmt}" "Draft" "$(get_draft "${model_id}")"
-                [[ "${model_id}" == "${MODEL_ID:-}" && "${variant}" == "${MODEL_VARIANT:-}" ]] \
-                    && printf "${fmt}" "Selected" "yes" \
-                    || printf "${fmt}" "Selected" "no (differs from selection)"
-                break
-            fi
-        done
-        [[ -n "${found}" ]] || printf "${fmt}" "Container" "${svc} (not in models.json)"
+        found="$(registry_lookup_service "${svc}")"
+        if [[ -z "${found}" ]]; then
+            printf "${fmt}" "Container" "${svc} (not in models.json)"
+            continue
+        fi
+        IFS=$'\t' read -r model_id variant <<<"${found}"
+        printf "${fmt}" "Container" "${svc}"
+        printf "${fmt}" "Model" "${model_id}"
+        printf "${fmt}" "Variant" "${variant:--}"
+        printf "${fmt}" "Draft" "$(get_draft "${model_id}")"
+        [[ "${model_id}" == "${MODEL_ID:-}" && "${variant}" == "${MODEL_VARIANT:-}" ]] \
+            && printf "${fmt}" "Selected" "yes" \
+            || printf "${fmt}" "Selected" "no (differs from selection)"
     done
     # All variants share host port 8000, so one readiness line covers them.
     local response
