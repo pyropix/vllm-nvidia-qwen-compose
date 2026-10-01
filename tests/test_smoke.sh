@@ -17,7 +17,7 @@ test_unknown_command() {
 }
 
 test_menu_quits_on_q() {
-  run_script --stdin "q"
+  run_script --stdin $'q\n'
   assert_status 0
   assert_out_contains "vLLM management"
 }
@@ -74,7 +74,7 @@ test_start_fails_when_registry_has_no_service() {
 }
 
 test_select_writes_env() {
-  run_script --stdin "2" select
+  run_script --stdin $'2\n' select
   assert_status 0
   grep -q '^MODEL_ID=nvidia/Qwen-A$' "${SANDBOX}/.env.vllm" || fail "MODEL_ID not written"
   grep -q '^MODEL_VARIANT=fast$' "${SANDBOX}/.env.vllm" || fail "MODEL_VARIANT not written"
@@ -84,7 +84,7 @@ test_select_writes_env() {
 test_select_without_variant_clears_variant_and_draft() {
   # Start from a variant with a Draft model so clearing is observable.
   sed -i -e 's|^MODEL_VARIANT=.*|MODEL_VARIANT=fast|' "${SANDBOX}/.env.vllm"
-  run_script --stdin "3" select
+  run_script --stdin $'3\n' select
   assert_status 0
   grep -q '^MODEL_ID=unsloth/Qwen-B$' "${SANDBOX}/.env.vllm" || fail "MODEL_ID not written"
   grep -q '^MODEL_VARIANT=$' "${SANDBOX}/.env.vllm" || fail "MODEL_VARIANT not cleared"
@@ -92,7 +92,7 @@ test_select_without_variant_clears_variant_and_draft() {
 }
 
 test_select_writes_context_window() {
-  run_script --stdin "3" select
+  run_script --stdin $'3\n' select
   assert_status 0
   local expected
   expected="$(jq -r '.[] | select(.id == "unsloth/Qwen-B") | .context' "${SANDBOX}/models.json")"
