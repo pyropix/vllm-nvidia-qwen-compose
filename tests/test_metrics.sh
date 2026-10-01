@@ -19,7 +19,9 @@ test_start_labels_scrape_target_with_run() {
     local file
     file="$(targets_file)"
     [[ -f "${file}" ]] || { fail "targets file not written"; return; }
-    [[ "$(jq -r '.[0].targets[0]' "${file}")" == "localhost:8000" ]] || fail "wrong target"
+    # shellcheck source=lib/status.sh
+    source "${REPO_DIR}/lib/status.sh"
+    [[ "$(jq -r '.[0].targets[0]' "${file}")" == "${VLLM_ADDR}" ]] || fail "wrong target"
     [[ "$(jq -r '.[0].labels.model_id' "${file}")" == "nvidia/Qwen-A" ]] || fail "model_id label"
     [[ "$(jq -r '.[0].labels.variant' "${file}")" == "" ]] || fail "variant label should be empty"
     [[ "$(jq -r '.[0].labels.run_start' "${file}")" =~ ^[0-9]{8}-[0-9]{4}$ ]] || fail "run_start label"
