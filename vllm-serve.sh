@@ -163,6 +163,23 @@ cmd_start() {
         echo "Stop it first with $(basename "$0") stop." >&2
         return 1
     fi
+    # All variants bind host port 8000, so only one can run at a time.
+    local other others=()
+    while IFS= read -r other; do
+        [[ "${other}" == vllm-* && "${other}" != "${service}" ]] && others+=("${other}")
+    done < <(docker compose \
+        --project-directory "${SCRIPT_DIR}" \
+        --env-file "${ENV_FILE}" \
+        --profile '*' \
+        ps --all --format '{{.Service}}')
+    if (( ${#others[@]} > 0 )); then
+        echo "Stopping other variants: ${others[*]}"
+        docker compose \
+            --project-directory "${SCRIPT_DIR}" \
+            --env-file "${ENV_FILE}" \
+            --profile '*' \
+            rm --stop --force "${others[@]}"
+    fi
     docker compose \
         --project-directory "${SCRIPT_DIR}" \
         --env-file "${ENV_FILE}" \
