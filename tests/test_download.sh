@@ -31,9 +31,16 @@ test_status_download_missing_draft_model() {
 
 test_status_download_incomplete_blob() {
     fake_complete_download
-    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/abc.incomplete"
+    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/w.incomplete"
     serve status
     assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_ignores_stale_incomplete_blob() {
+    fake_complete_download
+    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/stale.incomplete"
+    serve status
+    assert_out_contains "Download   complete"
 }
 
 test_status_download_missing_shard() {
@@ -87,7 +94,7 @@ test_download_skips_complete_download() {
 
 test_start_refuses_incomplete_blob() {
     fake_complete_download
-    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/abc.incomplete"
+    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/w.incomplete"
     serve start
     assert_status 1
     assert_out_contains "nvidia/Qwen-A is not fully downloaded"
