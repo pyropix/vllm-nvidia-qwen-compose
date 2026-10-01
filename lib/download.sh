@@ -12,15 +12,15 @@ is_downloaded() {
   [[ -d "${snapshot}" ]] || return 1
   # Every symlinked file must resolve to a blob.
   [[ -z "$(find -L "${snapshot}" -type l)" ]] || return 1
-  # An interrupted download leaves <blob>.incomplete behind. Only one for a blob
-  # this revision links to counts; stale ones from other revisions are ignored.
+  # A partial blob is <blob>.<uuid8>.incomplete (hf 2.0.0) or <blob>.incomplete
+  # (older hf). One for a blob this revision links to always counts.
   while IFS= read -r link; do
-    [[ ! -e "${repo_dir}/blobs/$(basename "$(readlink "${link}")").incomplete" ]] || return 1
+    ! compgen -G "${repo_dir}/blobs/$(basename "$(readlink "${link}")")*.incomplete" >/dev/null || return 1
   done < <(find "${snapshot}" -type l)
-  # A file with no snapshot symlink yet (config.json, tokenizer) leaves an
-  # <blob>.incomplete no link points to. hf writes refs/main before it fetches
-  # files, so one at least as new as refs/main belongs to this revision; an
-  # older one is a stale leftover of another revision and is ignored.
+  # A file with no snapshot symlink yet (config.json, tokenizer) leaves a partial
+  # blob no link points to. One at least as new as refs/main belongs to this
+  # revision; an older one is a stale leftover and is ignored. This mtime
+  # heuristic and its limits: docs/adr/0004-stale-incomplete-blobs-by-mtime.md.
   while IFS= read -r link; do
     [[ "${repo_dir}/refs/main" -nt "${link}" ]] || return 1
   done < <(find "${repo_dir}/blobs" -name '*.incomplete' 2>/dev/null)
