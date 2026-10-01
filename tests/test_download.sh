@@ -366,7 +366,7 @@ test_status_download_model_id_missing_tokenizer_incomplete() {
 test_status_download_model_id_config_regular_file_incomplete() {
   fake_complete_download
   local snapshot
-  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
   rm "${snapshot}/config.json"
   echo '{}' >"${snapshot}/config.json"
   run_script status
@@ -376,7 +376,7 @@ test_status_download_model_id_config_regular_file_incomplete() {
 test_status_download_model_id_tokenizer_regular_file_incomplete() {
   fake_complete_download
   local snapshot
-  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
   rm "${snapshot}/tokenizer.json"
   echo '{}' >"${snapshot}/tokenizer.json"
   run_script status
