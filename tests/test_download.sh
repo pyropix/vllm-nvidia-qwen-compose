@@ -4,8 +4,12 @@ set -euo pipefail
 # shellcheck source=tests/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
+# The fixture's only tokenizer file is tokenizer.json, so this also shows
+# tokenizer.json alone is enough for a Model ID.
 test_status_download_complete() {
   fake_complete_download
+  [[ ! -e "$(fake_snapshot_dir nvidia/Qwen-A)/tokenizer_config.json" ]] \
+    || fail "fixture ships tokenizer_config.json"
   run_script status
   assert_status 0
   assert_out_contains "Download   complete"
@@ -105,7 +109,7 @@ test_start_ignores_stale_unlinked_incomplete_blob() {
 test_status_download_missing_shard() {
   fake_complete_download
   local snapshot
-  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
   echo '{"weight_map":{"a":"model.safetensors","b":"model-2.safetensors"}}' \
     >"${snapshot}/model.safetensors.index.json"
   run_script status
@@ -208,7 +212,7 @@ test_start_refuses_incomplete_blob() {
 test_start_refuses_missing_shard() {
   fake_complete_download
   local snapshot
-  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
   echo '{"weight_map":{"a":"model.safetensors","b":"model-2.safetensors"}}' \
     >"${snapshot}/model.safetensors.index.json"
   run_script start
@@ -279,7 +283,7 @@ test_shared_draft_model_broken_blocks_both() {
 fake_download_as() {
   local snapshot
   fake_download "$1"
-  snapshot="$(fake_repo_dir "$1")/snapshots/rev1"
+  snapshot="$(fake_snapshot_dir "$1")"
   rm "${snapshot}/model.safetensors"
   ln -s ../../blobs/w "${snapshot}/$2"
 }
@@ -306,7 +310,7 @@ test_status_download_unsupported_weight_format_incomplete() {
 test_status_download_without_weight_files_incomplete() {
   fake_complete_download
   local snapshot
-  snapshot="$(fake_repo_dir z-lab/Draft-A)/snapshots/rev1"
+  snapshot="$(fake_snapshot_dir z-lab/Draft-A)"
   rm "${snapshot}/model.safetensors"
   run_script status
   assert_out_contains "incomplete (missing: z-lab/Draft-A)"
@@ -315,7 +319,7 @@ test_status_download_without_weight_files_incomplete() {
 test_status_download_all_shards_present_in_safetensors_index() {
   fake_complete_download
   echo '{"weight_map":{"a":"model.safetensors"}}' \
-    >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/model.safetensors.index.json"
+    >"$(fake_snapshot_dir nvidia/Qwen-A)/model.safetensors.index.json"
   run_script status
   assert_out_contains "Download   complete"
 }
@@ -323,7 +327,7 @@ test_status_download_all_shards_present_in_safetensors_index() {
 test_status_download_ignores_non_weight_index() {
   fake_complete_download
   echo '{"weight_map":{"a":"missing.bin"}}' \
-    >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/tokenizer.index.json"
+    >"$(fake_snapshot_dir nvidia/Qwen-A)/tokenizer.index.json"
   run_script status
   assert_out_contains "Download   complete"
 }
@@ -331,7 +335,7 @@ test_status_download_ignores_non_weight_index() {
 # A weight index that cannot be read as a shard list makes the Download incomplete.
 assert_malformed_index_incomplete() {
   fake_complete_download
-  printf '%s' "$1" >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/model.safetensors.index.json"
+  printf '%s' "$1" >"$(fake_snapshot_dir nvidia/Qwen-A)/model.safetensors.index.json"
   run_script status
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
@@ -346,14 +350,14 @@ test_status_download_index_non_string_shard_incomplete() { assert_malformed_inde
 # See docs/adr/0005-fixed-required-files.md.
 test_status_download_model_id_missing_config_incomplete() {
   fake_complete_download
-  rm "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/config.json"
+  rm "$(fake_snapshot_dir nvidia/Qwen-A)/config.json"
   run_script status
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
 test_status_download_model_id_missing_tokenizer_incomplete() {
   fake_complete_download
-  rm "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/tokenizer.json"
+  rm "$(fake_snapshot_dir nvidia/Qwen-A)/tokenizer.json"
   run_script status
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
@@ -361,37 +365,29 @@ test_status_download_model_id_missing_tokenizer_incomplete() {
 test_status_download_model_id_tokenizer_config_alone_complete() {
   fake_complete_download
   local snapshot
-  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
   mv "${snapshot}/tokenizer.json" "${snapshot}/tokenizer_config.json"
-  run_script status
-  assert_out_contains "Download   complete"
-}
-
-test_status_download_model_id_tokenizer_json_alone_complete() {
-  fake_complete_download
-  [[ ! -e "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/tokenizer_config.json" ]] \
-    || fail "fixture ships tokenizer_config.json"
   run_script status
   assert_out_contains "Download   complete"
 }
 
 test_status_download_draft_model_without_tokenizer_complete() {
   fake_complete_download
-  rm "$(fake_repo_dir z-lab/Draft-A)/snapshots/rev1/tokenizer.json"
+  rm "$(fake_snapshot_dir z-lab/Draft-A)/tokenizer.json"
   run_script status
   assert_out_contains "Download   complete"
 }
 
 test_status_download_draft_model_missing_config_incomplete() {
   fake_complete_download
-  rm "$(fake_repo_dir z-lab/Draft-A)/snapshots/rev1/config.json"
+  rm "$(fake_snapshot_dir z-lab/Draft-A)/config.json"
   run_script status
   assert_out_contains "incomplete (missing: z-lab/Draft-A)"
 }
 
 test_start_refuses_model_id_missing_config() {
   fake_complete_download
-  rm "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/config.json"
+  rm "$(fake_snapshot_dir nvidia/Qwen-A)/config.json"
   run_script start
   assert_status 1
   assert_out_contains "nvidia/Qwen-A is not fully downloaded"
