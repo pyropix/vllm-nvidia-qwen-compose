@@ -7,7 +7,7 @@
 
 A file that was never fetched leaves no snapshot symlink and no partial blob, so the other checks can't see it. The fixed set catches the files vLLM can't start without.
 
-A Draft model uses its target model's tokenizer and ships none of its own: `z-lab/Qwen3.8-27B-DFlash2` and `Doopeworld/Qwen3.8-27B-DSpark-vLLM` have only `config.json` and `model.safetensors`. So `download_missing` passes `draft` to `is_downloaded` for the Draft model, which skips the tokenizer check. Every Model ID and Draft model in `models.json` was checked to ship its required files.
+A Draft model uses its target model's tokenizer and ships none of its own: `z-lab/Qwen3.8-27B-DFlash2` and `Doopeworld/Qwen3.8-27B-DSpark-vLLM` have only `config.json` and `model.safetensors`. So `download_missing` passes `draft` to `is_downloaded` for the Draft model, which skips the tokenizer check. The registry was checked once, by hand, on 2026-10-01 against the Hugging Face Hub file list of each repo in `models.json`: every Model ID ships `config.json` and a tokenizer; every Draft model ships `config.json` and safetensors only. This check is not repeated by any script or test.
 
 ## Considered options
 
@@ -18,4 +18,4 @@ A Draft model uses its target model's tokenizer and ships none of its own: `z-la
 
 - Optional files (e.g. `generation_config.json`, a chat template) aren't checked. A Download missing one counts as complete.
 - The HF cache keeps no offline list of a repo's files, so only the fixed set is detected.
-- A Model ID or Draft model added to `models.json` that doesn't ship the required files always counts as incomplete. Check new entries before adding them.
+- A registry entry whose repo lacks a required file always shows as an incomplete Download. Check new entries the same way, against their Hub file list, before adding them to `models.json`.
