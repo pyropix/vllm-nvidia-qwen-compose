@@ -362,27 +362,6 @@ test_status_download_model_id_missing_tokenizer_incomplete() {
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
-# A required file counts only as a snapshot symlink to an existing blob (#40).
-test_status_download_model_id_config_regular_file_incomplete() {
-  fake_complete_download
-  local snapshot
-  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
-  rm "${snapshot}/config.json"
-  echo '{}' >"${snapshot}/config.json"
-  run_script status
-  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
-}
-
-test_status_download_model_id_tokenizer_regular_file_incomplete() {
-  fake_complete_download
-  local snapshot
-  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
-  rm "${snapshot}/tokenizer.json"
-  echo '{}' >"${snapshot}/tokenizer.json"
-  run_script status
-  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
-}
-
 test_status_download_model_id_tokenizer_config_alone_complete() {
   fake_complete_download
   local snapshot
@@ -404,6 +383,31 @@ test_status_download_draft_model_missing_config_incomplete() {
   rm "$(fake_snapshot_dir z-lab/Draft-A)/config.json"
   run_script status
   assert_out_contains "incomplete (missing: z-lab/Draft-A)"
+}
+
+# A required file counts only as a snapshot symlink to an existing blob (#40):
+# replacing <file> in nvidia/Qwen-A with a regular file makes it incomplete.
+assert_regular_file_incomplete() {
+  fake_complete_download
+  local file
+  file="$(fake_snapshot_dir nvidia/Qwen-A)/$1"
+  rm "${file}"
+  echo '{}' >"${file}"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_model_id_config_regular_file_incomplete() { assert_regular_file_incomplete config.json; }
+test_status_download_model_id_tokenizer_regular_file_incomplete() { assert_regular_file_incomplete tokenizer.json; }
+
+test_status_download_model_id_config_link_outside_blobs_incomplete() {
+  fake_complete_download
+  local file
+  file="$(fake_snapshot_dir nvidia/Qwen-A)/config.json"
+  echo '{}' >"${SANDBOX}/config.json"
+  ln -sf "${SANDBOX}/config.json" "${file}"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
 test_start_refuses_model_id_missing_config() {

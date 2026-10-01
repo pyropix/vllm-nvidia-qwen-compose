@@ -3,8 +3,12 @@
 # Sourced by vllm-serve.sh.
 require_defined ENV_FILE load_env check_registry_env registry_draft || return 1
 
-# Succeed when <path> is a symlink that resolves to an existing regular file.
-is_resolved_link() { [[ -L "$1" && -f "$1" ]]; }
+# is_cached_file <path> <blobs_dir>: succeed when <path> is a symlink that
+# resolves to an existing regular file inside <blobs_dir>.
+is_cached_file() {
+  [[ -L "$1" && -f "$1" ]] || return 1
+  [[ "$(realpath "$1")" == "$(realpath "$2")"/* ]]
+}
 
 # Succeed when a repo is fully present in the local HF cache (offline check).
 # is_downloaded <repo> [model|draft]: a Draft model (draft) needs no tokenizer;
@@ -47,9 +51,9 @@ is_downloaded() {
   # (a regular file placed by hand does not count): config.json, and a tokenizer
   # for a Model ID. A Draft model uses its target's tokenizer.
   # Decision and limits: docs/adr/0005-fixed-required-files.md.
-  is_resolved_link "${snapshot}/config.json" || return 1
-  [[ "${2:-model}" == draft ]] || is_resolved_link "${snapshot}/tokenizer.json" \
-    || is_resolved_link "${snapshot}/tokenizer_config.json" || return 1
+  is_cached_file "${snapshot}/config.json" "${repo_dir}/blobs" || return 1
+  [[ "${2:-model}" == draft ]] || is_cached_file "${snapshot}/tokenizer.json" "${repo_dir}/blobs" \
+    || is_cached_file "${snapshot}/tokenizer_config.json" "${repo_dir}/blobs" || return 1
   # At least one safetensors file. Every Model ID and Draft model in the registry
   # ships safetensors, so other weight formats are not supported.
   compgen -G "${snapshot}/*.safetensors" >/dev/null
