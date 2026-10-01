@@ -111,39 +111,39 @@ compose_prefix() {
 test_start_compose_args() {
     fake_download nvidia/Qwen-A
     fake_download z-lab/Draft-A
-    serve start
+    run_script start
     assert_status 0
     local p
     p="$(compose_prefix)"
-    assert_log_contains "${p} --profile vllm-nv-qwen-A ps vllm-nv-qwen-A --status running"
+    assert_log_contains "${p} --profile ${SVC_A} ps ${SVC_A} --status running"
     assert_log_contains "${p} --profile * ps --all"
-    assert_log_contains "${p} --profile vllm-nv-qwen-A pull"
-    assert_log_contains "${p} --profile vllm-nv-qwen-A up --detach --remove-orphans"
+    assert_log_contains "${p} --profile ${SVC_A} pull"
+    assert_log_contains "${p} --profile ${SVC_A} up --detach --remove-orphans"
 }
 
 test_start_removes_other_variants() {
     fake_download nvidia/Qwen-A
     fake_download z-lab/Draft-A
-    echo "vllm-us-qwen-B" >"${STUB_DOCKER_PS}"
-    serve start
+    echo "${SVC_B}" >"${STUB_DOCKER_PS}"
+    run_script start
     assert_status 0
-    assert_log_contains "$(compose_prefix) --profile * rm --stop --force vllm-us-qwen-B"
+    assert_log_contains "$(compose_prefix) --profile * rm --stop --force ${SVC_B}"
 }
 
 test_stop_compose_args() {
-    serve stop
+    run_script stop
     assert_status 0
-    assert_log_contains "$(compose_prefix) --profile vllm-nv-qwen-A down --remove-orphans"
+    assert_log_contains "$(compose_prefix) --profile ${SVC_A} down --remove-orphans"
 }
 
 test_logs_compose_args() {
-    serve logs
+    run_script logs
     assert_status 0
-    assert_log_contains "$(compose_prefix) logs vllm-nv-qwen-A --follow"
+    assert_log_contains "$(compose_prefix) logs ${SVC_A} --follow"
 }
 
 test_status_compose_args() {
-    serve status
+    run_script status
     assert_status 0
     assert_log_contains "$(compose_prefix) --profile * ps --status running --format {{.Service}}"
 }
