@@ -4,6 +4,8 @@
 require_defined ENV_FILE load_env check_registry_env registry_draft || return 1
 
 # Succeed when a repo is fully present in the local HF cache (offline check).
+# is_downloaded <repo> [model|draft]: a Draft model (draft) needs no tokenizer;
+# the default (model) is a Model ID's weights repo.
 is_downloaded() {
   local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard index link
   [[ -f "${repo_dir}/refs/main" ]] || return 1
@@ -34,6 +36,12 @@ is_downloaded() {
       [[ -f "${snapshot}/${shard}" ]] || return 1
     done < <(jq -r '.weight_map[]' "${index}" | sort -u)
   done
+  # A fixed set of required files, each resolved to a blob (dangling links failed
+  # above): config.json, and a tokenizer for a Model ID. A Draft model uses its
+  # target's tokenizer. Decision and limits: docs/adr/0005-fixed-required-files.md.
+  [[ -f "${snapshot}/config.json" ]] || return 1
+  [[ "${2:-model}" == draft || -f "${snapshot}/tokenizer.json" \
+    || -f "${snapshot}/tokenizer_config.json" ]] || return 1
   # At least one safetensors file. Every Model ID and Draft model in the registry
   # ships safetensors, so other weight formats are not supported.
   compgen -G "${snapshot}/*.safetensors" >/dev/null
@@ -50,9 +58,10 @@ download_repos() {
 
 # Print the repos of a Model ID's Download that are not fully present (one per line).
 download_missing() {
-  local repo
+  local repo kind=model
   while IFS= read -r repo; do
-    is_downloaded "${repo}" || echo "${repo}"
+    is_downloaded "${repo}" "${kind}" || echo "${repo}"
+    kind=draft  # download_repos prints the Model ID first, then its Draft model.
   done < <(download_repos "$1")
 }
 
