@@ -346,6 +346,26 @@ test_status_download_index_empty_weight_map_incomplete() { assert_malformed_inde
 test_status_download_index_weight_map_not_object_incomplete() { assert_malformed_index_incomplete '{"weight_map":["model.safetensors"]}'; }
 test_status_download_index_non_string_shard_incomplete() { assert_malformed_index_incomplete '{"weight_map":{"a":1}}'; }
 
+# A listed shard counts only as a snapshot symlink to a blob of its repo (#43):
+# with model.safetensors listed in the index, put <target> in its place.
+assert_listed_shard_incomplete() {
+  fake_complete_download
+  local snapshot
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
+  echo '{"weight_map":{"a":"model.safetensors"}}' >"${snapshot}/model.safetensors.index.json"
+  rm "${snapshot}/model.safetensors"
+  echo weights >"${SANDBOX}/model.safetensors"
+  case "$1" in
+    regular-file) cp "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
+    outside-link) ln -s "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
+  esac
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_listed_shard_regular_file_incomplete() { assert_listed_shard_incomplete regular-file; }
+test_status_download_listed_shard_link_outside_blobs_incomplete() { assert_listed_shard_incomplete outside-link; }
+
 # Required files: config.json in every repo; a tokenizer in Model ID repos only.
 # See docs/adr/0005-fixed-required-files.md.
 test_status_download_model_id_missing_config_incomplete() {
