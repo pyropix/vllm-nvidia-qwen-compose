@@ -312,7 +312,8 @@ usage() {
 }
 
 menu() {
-    local actions=("show status" "select model""login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
+    local actions=("show status" "select model" "login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
+    cmd_status
     while true; do
         echo ""
         echo "vLLM management — choose an action:"
