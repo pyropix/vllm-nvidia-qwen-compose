@@ -368,6 +368,26 @@ assert_listed_shard_incomplete() {
 test_status_download_listed_shard_regular_file_incomplete() { assert_listed_shard_incomplete regular-file; }
 test_status_download_listed_shard_link_outside_blobs_incomplete() { assert_listed_shard_incomplete outside-link; }
 
+# With no weight index, the at-least-one safetensors check also counts only a
+# snapshot symlink to a blob of its repo (#44): put <target> in place of the only shard.
+assert_only_safetensors_incomplete() {
+  fake_complete_download
+  local snapshot
+  snapshot="$(fake_snapshot_dir nvidia/Qwen-A)"
+  rm -f "${snapshot}"/*.safetensors.index.json "${snapshot}"/*.safetensors
+  echo weights >"${SANDBOX}/model.safetensors"
+  case "$1" in
+    regular-file) cp "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
+    outside-link) ln -s "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
+    *) fail "unknown mode: $1" ;;
+  esac
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_only_safetensors_regular_file_incomplete() { assert_only_safetensors_incomplete regular-file; }
+test_status_download_only_safetensors_link_outside_blobs_incomplete() { assert_only_safetensors_incomplete outside-link; }
+
 # Required files: config.json in every repo; a tokenizer in Model ID repos only.
 # See docs/adr/0005-fixed-required-files.md.
 test_status_download_model_id_missing_config_incomplete() {
