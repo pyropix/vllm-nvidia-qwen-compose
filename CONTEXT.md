@@ -12,6 +12,8 @@
 
 **Download**: Fetching everything a Model ID needs to be served: its weights plus its Draft model, if it has one. The Draft model is mandatory, not optional. A Download belongs to a Model ID, not a Variant; all Variants of a Model ID share one Download. A Download is complete only when both the Model ID's weights and its Draft model are present; a Service must not start from an incomplete Download. A Draft model shared by several Model IDs is fetched once and serves all of them.
 
+**Partial blob**: A file in a repository's `blobs/` directory of the local Hugging Face cache whose name ends in `.incomplete`, left by the hf CLI while it downloads that blob, or after that download was interrupted. Both naming forms count: `<blob>.incomplete` (older hf) and `<blob>.<uuid8>.incomplete` (hf 2.0.0). A partial blob of a blob the revision links to always makes the Download incomplete; one no link points to counts only when it is at least as new as `refs/main` (ADR 0004).
+
 **Context window**: The maximum number of tokens (prompt plus output) a Service accepts for a Model ID, declared once per Model ID in the Model registry as `context`. All Variants of a Model ID share it. vLLM's `--max-model-len` and the pi provider's `contextWindow` both take their value from it; neither holds a copy.
 
 **Run**: One continuous stretch of serving a single Service, from its start to its stop. A Run is identified by its Model ID, Variant (if any) and start time. Runs are the unit of performance comparison: metrics are recorded per Run, so one Run can be compared against another (different Model IDs, different Variants of one Model ID, or the same Service started at different times). Metric history outlives a Run; it is discarded only by an explicit reset.
