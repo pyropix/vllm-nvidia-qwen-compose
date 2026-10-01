@@ -38,9 +38,37 @@ test_status_download_incomplete_blob() {
 
 test_status_download_ignores_stale_incomplete_blob() {
     fake_complete_download
-    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/stale.incomplete"
+    touch -d '2 days ago' "$(fake_repo_dir nvidia/Qwen-A)/blobs/stale.incomplete"
     run_script status
     assert_out_contains "Download   complete"
+}
+
+# A partial download of a file with no snapshot symlink yet (e.g. config.json).
+test_status_download_unlinked_incomplete_blob() {
+    fake_complete_download
+    touch -d '1 hour ago' "$(fake_repo_dir nvidia/Qwen-A)/refs/main"
+    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/cfg.incomplete"
+    run_script status
+    assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_start_refuses_unlinked_incomplete_blob() {
+    fake_complete_download
+    touch -d '1 hour ago' "$(fake_repo_dir nvidia/Qwen-A)/refs/main"
+    touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/cfg.incomplete"
+    run_script start
+    assert_status 1
+    assert_out_contains "nvidia/Qwen-A is not fully downloaded"
+    assert_log_lacks "up --detach"
+}
+
+test_start_ignores_stale_unlinked_incomplete_blob() {
+    fake_complete_download
+    touch -d '1 hour ago' "$(fake_repo_dir nvidia/Qwen-A)/refs/main"
+    touch -d '2 days ago' "$(fake_repo_dir nvidia/Qwen-A)/blobs/stale.incomplete"
+    run_script start
+    assert_status 0
+    assert_log_contains "up --detach"
 }
 
 test_status_download_missing_shard() {
