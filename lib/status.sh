@@ -39,8 +39,10 @@ running_vllm_services() {
 }
 
 # Print one "label  value" row of the status table.
+# status_row LABEL VALUE [WIDTH]: LABEL left-aligned in WIDTH columns
+# (default 10), then one space and VALUE.
 status_row() {
-  printf "  %-10s %s\n" "$1" "$2"
+  printf "  %-*s %s\n" "${3:-10}" "$1" "$2"
 }
 
 cmd_status() {
@@ -64,7 +66,8 @@ cmd_status() {
   echo "Downloads (all Model IDs in ${MODELS_FILE})"
   local id
   while IFS= read -r id; do
-    printf "  %s  %s\n" "${id}" "$(download_state "${id}")"
+    # Unaligned: the Model ID, then two spaces, then its Download state.
+    status_row "${id}" "$(download_state "${id}")" "$(( ${#id} + 1 ))"
   done < <(registry_ids)
   echo ""
   echo "Running"
