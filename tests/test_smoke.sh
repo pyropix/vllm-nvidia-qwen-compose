@@ -38,6 +38,41 @@ test_status_running_and_ready() {
     assert_out_contains "yes (nvidia/Qwen-A)"
 }
 
+test_status_maps_running_variant_service_via_registry() {
+    echo "${SVC_A_FAST}" >"${STUB_DOCKER_PS}"
+    run_script status
+    assert_status 0
+    assert_out_contains "${SVC_A_FAST}"
+    assert_out_contains "no (differs from selection)"
+}
+
+test_status_unknown_running_service() {
+    echo "vllm-unlisted" >"${STUB_DOCKER_PS}"
+    run_script status
+    assert_status 0
+    assert_out_contains "vllm-unlisted (not in models.json)"
+}
+
+test_start_fails_when_registry_service_missing_from_compose() {
+    sed -i "/^  ${SVC_A}:/,+1d" "${SANDBOX}/docker-compose.yml"
+    fake_download nvidia/Qwen-A
+    fake_download z-lab/Draft-A
+    run_script start
+    assert_status 1
+    assert_out_contains "no docker-compose service '${SVC_A}'"
+    assert_log_lacks "docker compose"
+}
+
+test_start_fails_when_registry_has_no_service() {
+    fake_download nvidia/Qwen-A
+    fake_download z-lab/Draft-A
+    jq 'map(del(.service))' "${SANDBOX}/models.json" >"${SANDBOX}/m.json"
+    mv "${SANDBOX}/m.json" "${SANDBOX}/models.json"
+    run_script start
+    assert_status 1
+    assert_out_contains "no service"
+}
+
 test_select_writes_env() {
     run_script --stdin "2" select
     assert_status 0

@@ -16,4 +16,4 @@
 
 **Run**: One continuous stretch of serving a single Service, from its start to its stop. A Run is identified by its Model ID, Variant (if any) and start time. Runs are the unit of performance comparison: metrics are recorded per Run, so one Run can be compared against another (different Model IDs, different Variants of one Model ID, or the same Service started at different times). Metric history outlives a Run; it is discarded only by an explicit reset.
 
-**Model registry**: The single list of selectable Model IDs, with each one's Context window, Variants and optional Draft model. It is the only place the Model ID to Draft model pairing and the Context window are configured; other files only describe or read them.
+**Model registry**: The single list of selectable Model IDs, with each one's Service name, Context window, Variants (each with its own Service name) and optional Draft model. It is the only place the Model ID to Draft model pairing and the Context window are configured; other files only describe or read them.

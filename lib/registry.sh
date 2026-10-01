@@ -18,7 +18,7 @@ registry_load() {
     fi
     require_jq
     models=()
-    mapfile -t models < <(jq -r '.[] | .id, (.id + ":" + (.variants // [])[])' "${MODELS_FILE}")
+    mapfile -t models < <(jq -r '.[] | .id, (.id + ":" + (.variants // [])[].name)' "${MODELS_FILE}")
     if [[ "${#models[@]}" -eq 0 ]]; then
         echo "Error: no models defined in ${MODELS_FILE}." >&2
         exit 1

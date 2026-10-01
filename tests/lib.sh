@@ -7,12 +7,13 @@
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STUBS_DIR="${REPO_DIR}/tests/stubs"
 
-# Compose service names of the sandbox models.json fixtures (the convention
-# derive_service() implements). Tests refer to these, never to literals.
-SVC_A="vllm-nv-qwen-A"
-SVC_A_FAST="${SVC_A}-fast"
-SVC_B="vllm-us-qwen-B"
-SVC_C="vllm-us-qwen-C"
+# Compose service names of the sandbox models.json fixtures, as stored in the
+# registry. They follow no naming convention on purpose. Tests refer to these,
+# never to literals.
+SVC_A="vllm-alpha"
+SVC_A_FAST="vllm-alpha-turbo"
+SVC_B="vllm-beta-service"
+SVC_C="vllm-gamma"
 
 ORIGINAL_PATH="${PATH}"
 FAILURES=0
@@ -37,9 +38,10 @@ sandbox_new() {
     cp -r "${REPO_DIR}/lib" "${SANDBOX}/lib"
     cat >"${SANDBOX}/models.json" <<'JSON'
 [
-  {"id": "nvidia/Qwen-A", "context": 262144, "draft": "z-lab/Draft-A", "variants": ["fast"]},
-  {"id": "unsloth/Qwen-B", "context": 1048576},
-  {"id": "unsloth/Qwen-C", "context": 65536, "draft": "z-lab/Draft-A"}
+  {"id": "nvidia/Qwen-A", "service": "vllm-alpha", "context": 262144, "draft": "z-lab/Draft-A",
+   "variants": [{"name": "fast", "service": "vllm-alpha-turbo"}]},
+  {"id": "unsloth/Qwen-B", "service": "vllm-beta-service", "context": 1048576},
+  {"id": "unsloth/Qwen-C", "service": "vllm-gamma", "context": 65536, "draft": "z-lab/Draft-A"}
 ]
 JSON
     {
