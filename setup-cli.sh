@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-## Install / manage the Hugging Face CLI and pi agent CLI
+## Install / manage the Hugging Face CLI, pi agent CLI and jq (read by vllm-serve.sh)
 
 HF_CLI_BIN="${HOME}/.local/bin/hf"
 HF_CLI_DIR="${HF_HOME:+${HF_HOME}/cli}"
@@ -65,8 +65,24 @@ cmd_pi_uninstall() {
     npm uninstall -g @earendil-works/pi-coding-agent
 }
 
+## jq (reads models.json in vllm-serve.sh)
+
+cmd_jq_install() {
+    sudo apt-get install -y jq
+}
+
+cmd_jq_check() {
+    if command -v jq &>/dev/null; then
+        echo "jq found"
+        jq --version
+    else
+        echo "jq not installed."
+        exit 1
+    fi
+}
+
 usage() {
-    echo "Usage: $(basename "$0") [hf-install|hf-reinstall|hf-with-transformers|hf-check|hf-uninstall|pi-install|pi-check|pi-update|pi-uninstall]"
+    echo "Usage: $(basename "$0") [hf-install|hf-reinstall|hf-with-transformers|hf-check|hf-uninstall|pi-install|pi-check|pi-update|pi-uninstall|jq-install|jq-check]"
     echo ""
     echo "Hugging Face CLI:"
     echo "  hf-install           Install the hf CLI (reuses existing venv if present)"
@@ -81,6 +97,10 @@ usage() {
     echo "  pi-update            Update the pi agent CLI to the latest version"
     echo "  pi-uninstall         Remove the pi agent CLI (keeps ~/.pi config)"
     echo ""
+    echo "jq:"
+    echo "  jq-install           Install jq via apt (needed to read models.json)"
+    echo "  jq-check             Show whether jq is installed and its version"
+    echo ""
     echo "Run without arguments for an interactive menu."
 }
 
@@ -89,6 +109,7 @@ menu() {
         "install hf CLI" "reinstall hf CLI (force)" "install hf CLI with transformers"
         "check hf CLI" "uninstall hf CLI"
         "install pi agent CLI" "check pi agent CLI" "update pi agent CLI" "uninstall pi agent CLI"
+        "install jq" "check jq"
     )
     while true; do
         echo ""
@@ -108,6 +129,8 @@ menu() {
                 "check pi agent CLI")               cmd_pi_check ;;
                 "update pi agent CLI")               cmd_pi_update ;;
                 "uninstall pi agent CLI")            cmd_pi_uninstall ;;
+                "install jq")                        cmd_jq_install ;;
+                "check jq")                          cmd_jq_check ;;
                 *)                                   echo "Invalid selection." ;;
             esac
             break
@@ -125,6 +148,8 @@ case "${1:-}" in
     pi-check)             cmd_pi_check ;;
     pi-update)            cmd_pi_update ;;
     pi-uninstall)         cmd_pi_uninstall ;;
+    jq-install)           cmd_jq_install ;;
+    jq-check)             cmd_jq_check ;;
     help|--help|-h)       usage ;;
     "")                   menu ;;
     *)                    echo "Unknown command: $1" >&2; usage >&2; exit 1 ;;

@@ -1,0 +1,13 @@
+[
+  {"id": "nvidia/Qwen3.6-27B-NVFP4"},
+  {"id": "nvidia/Qwen3.6-35B-A3B-NVFP4"},
+  {
+    "id": "nvidia/Qwen3.8-27B-NVFP4",
+    "draft": "z-lab/Qwen3.8-27B-DFlash2",
+    "variants": ["instanttensor"]
+  },
+  {
+    "id": "unsloth/Qwen3.8-27B-NVFP4",
+    "draft": "Doopeworld/Qwen3.8-27B-DSpark-vLLM"
+  }
+]

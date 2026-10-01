@@ -28,7 +28,7 @@ Runs Qwen3.x models as an OpenAI-compatible inference server using [vLLM](https:
 
 ## Configuration
 
-The service configuration lives in `docker-compose.yml`. Each `MODEL_ID` in `models.conf` has its own compose service/profile prefixed `vllm-` (launch flags and per-model differences: [docs/profiles.md](docs/profiles.md)). The container listens on port `8000` and exposes an OpenAI-compatible API.
+The service configuration lives in `docker-compose.yml`. Each `MODEL_ID` in `models.json` has its own compose service/profile prefixed `vllm-` (launch flags and per-model differences: [docs/profiles.md](docs/profiles.md)). The container listens on port `8000` and exposes an OpenAI-compatible API.
 
 ```bash
 curl http://localhost:8000/v1/models
@@ -48,7 +48,7 @@ curl http://localhost:8000/v1/chat/completions \
 
 ## Models
 
-The list of models offered by `./vllm-serve.sh select` is defined in [`models.conf`](models.conf) — one `MODEL_ID` per line (optionally `MODEL_ID:variant` to select a parallel service for the same model). To add a new variant, add a line there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
+The list of models offered by `./vllm-serve.sh select` is defined in [`models.json`](models.json) — one entry per `id`, with optional `variants` (parallel services for the same model) and an optional `draft` model for speculative decoding. `select` writes `MODEL_ID`, `MODEL_VARIANT` and `DRAFT_MODEL_ID` to `.env.vllm`, and `download` fetches the draft model too. Reading the file needs `jq`. To add a new model or variant, add an entry there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
 
 | Variant                      | Hugging Face                                                                          | Notes                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------- |

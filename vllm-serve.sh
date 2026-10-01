@@ -3,21 +3,44 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/.env.vllm"
-MODELS_FILE="${SCRIPT_DIR}/models.conf"
+MODELS_FILE="${SCRIPT_DIR}/models.json"
 
+require_jq() {
+    if ! command -v jq &>/dev/null; then
+        echo "Error: jq is required to read ${MODELS_FILE}." >&2
+        echo "Install it with: ./setup-cli.sh jq-install" >&2
+        exit 1
+    fi
+}
+
+# Fill the 'models' array with one "MODEL_ID[:variant]" entry per Service.
 load_models() {
     if [[ ! -f "${MODELS_FILE}" ]]; then
         echo "Error: ${MODELS_FILE} not found." >&2
         exit 1
     fi
+    require_jq
     models=()
-    while IFS= read -r line; do
-        line="${line%%#*}"
-        line="$(echo -n "${line}" | xargs)"
-        [[ -n "${line}" ]] && models+=("${line}")
-    done < "${MODELS_FILE}"
+    mapfile -t models < <(jq -r '.[] | .id, (.id + ":" + (.variants // [])[])' "${MODELS_FILE}")
     if [[ "${#models[@]}" -eq 0 ]]; then
         echo "Error: no models defined in ${MODELS_FILE}." >&2
+        exit 1
+    fi
+}
+
+# Print the Draft model of a Model ID (empty when it has none).
+get_draft() {
+    require_jq
+    jq -r --arg id "$1" '.[] | select(.id == $id) | .draft // empty' "${MODELS_FILE}"
+}
+
+# Fail when the registry declares a Draft model that .env.vllm does not carry.
+check_draft() {
+    local expected
+    expected="$(get_draft "${MODEL_ID}")"
+    if [[ "${expected}" != "${DRAFT_MODEL_ID:-}" ]]; then
+        echo "Error: DRAFT_MODEL_ID in ${ENV_FILE} (${DRAFT_MODEL_ID:-unset}) does not match ${MODELS_FILE} (${expected:-none})." >&2
+        echo "Run $(basename "$0") select again." >&2
         exit 1
     fi
 }
@@ -44,7 +67,7 @@ get_service() {
     # character and prefix with 'vllm-<tag>-'.
     #   e.g. nvidia/Qwen3.6-27B-NVFP4  -> vllm-nv-qwen3.6-27B-NVFP4
     #        unsloth/Qwen3.8-27B-NVFP4 -> vllm-us-qwen3.8-27B-NVFP4
-    # Any model listed in models.conf must follow this convention.
+    # Any model listed in models.json must follow this convention.
     local org="${model_id%%/*}"
     local tag
     case "${org}" in
@@ -60,9 +83,9 @@ get_service() {
     local first="${name:0:1}"
     first="${first,,}"
     local service="vllm-${tag}-${first}${name:1}"
-    # An optional MODEL_VARIANT (from 'MODEL_ID:variant' in models.conf)
+    # An optional MODEL_VARIANT (a 'variants' entry in models.json)
     # selects a parallel service for the same model, e.g.
-    #   nvidia/Qwen3.8-27B-NVFP4:instanttensor
+    #   nvidia/Qwen3.8-27B-NVFP4 + variant instanttensor
     #     -> vllm-nv-qwen3.8-27B-NVFP4-instanttensor
     [[ -n "${MODEL_VARIANT:-}" ]] && service="${service}-${MODEL_VARIANT}"
     # Guard against a derived name that has no matching compose service.
@@ -94,7 +117,7 @@ cmd_select() {
     echo ""
     echo "Select the model to download and serve:"
     echo ""
-    local entry model_id variant=""
+    local entry model_id variant="" draft
     select entry in "${models[@]}"; do
         [[ -n "${entry}" ]] && break
         echo "Invalid selection. Enter a number between 1 and ${#models[@]}."
@@ -102,9 +125,11 @@ cmd_select() {
     # Entries are 'MODEL_ID' or 'MODEL_ID:variant'.
     model_id="${entry%%:*}"
     [[ "${entry}" == *:* ]] && variant="${entry#*:}"
+    draft="$(get_draft "${model_id}")"
     set_env_var MODEL_ID "${model_id}"
     set_env_var MODEL_VARIANT "${variant}"
-    echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant}"
+    set_env_var DRAFT_MODEL_ID "${draft}"
+    echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant} DRAFT_MODEL_ID=${draft}"
 }
 
 cmd_download() {
@@ -113,15 +138,19 @@ cmd_download() {
         echo "Error: HF_TOKEN not set in ${ENV_FILE}." >&2
         exit 1
     fi
+    check_draft
     hf auth login --token "${HF_TOKEN}"
-    # Strip an optional ":variant" suffix; the HF repo has no such suffix.
-    hf download "${MODEL_ID%%:*}"
+    hf download "${MODEL_ID}"
+    if [[ -n "${DRAFT_MODEL_ID:-}" ]]; then
+        hf download "${DRAFT_MODEL_ID}"
+    fi
     unset HF_TOKEN
     hf auth logout
 }
 
 cmd_start() {
     load_env
+    check_draft
     local profile service
     profile="$(get_profile)"
     service="$(get_service)"
@@ -198,7 +227,7 @@ usage() {
     echo "Usage: $(basename "$0") [select|download|start|logs|stop|pi|link|unlink]"
     echo ""
     echo "  select    Pick model variant and write to .env.vllm"
-    echo "  download  Login to HF and download model weights"
+    echo "  download  Login to HF and download model weights (and Draft model)"
     echo "  start     Pull image and start the vLLM container"
     echo "  logs      Tail the running container logs"
     echo "  stop      Stop and remove the container"
