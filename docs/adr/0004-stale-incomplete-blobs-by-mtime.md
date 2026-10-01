@@ -16,4 +16,4 @@ This relies on how `huggingface_hub` 2.0.0 downloads (`file_download.py`):
 - Copying the cache, or restoring it from a backup, can change timestamps and misclassify a partial blob.
 - Clock skew between writers of the cache can do the same.
 - A download that is hard-killed (SIGKILL, OOM kill, power loss) leaves a partial blob. If it is at least as new as `refs/main`, the Download stays incomplete until the file is fetched again or the leftover is deleted.
-- A non-shard file that was never fetched leaves no link and no partial blob, so it isn't detected.
+- A non-shard file that was never fetched leaves no link and no partial blob. The fixed set of required files in docs/adr/0005-fixed-required-files.md catches the ones vLLM needs.
