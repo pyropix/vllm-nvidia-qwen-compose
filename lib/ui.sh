@@ -12,12 +12,17 @@ cmd_select() {
   echo ""
   echo "Select the model to download and serve:"
   echo ""
-  local entry model_id variant draft context
+  local entry="" model_id variant draft context
   # shellcheck disable=SC2154 # models is filled by registry_load
   select entry in "${models[@]}"; do
     [[ -n "${entry}" ]] && break
     echo "Invalid selection. Enter a number between 1 and ${#models[@]}."
   done
+  # select ends without a choice when stdin closes.
+  if [[ -z "${entry}" ]]; then
+    echo "Error: No model selected (end of input); ${ENV_FILE} unchanged." >&2
+    return 1
+  fi
   registry_parse_entry "${entry}"
   model_id="${ENTRY_MODEL_ID}"
   variant="${ENTRY_VARIANT}"
@@ -51,18 +56,21 @@ usage() {
 
 menu() {
   local actions=("show status" "select model" "login & download model" "start vllm" "show logs" "check if vllm is ready" "stop vllm" "stop vllm and monitoring" "reset metrics history" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
+  local action="" eof
   cmd_status
   while true; do
+    eof=1
     echo ""
     echo "vLLM management — choose an action:"
     echo "  (type 'q' to quit)"
     select action in "${actions[@]}"; do
+      eof=0
       if [[ "${REPLY}" == "q" ]]; then
         return
       fi
       case "${action}" in
         "show status")    cmd_status ;;
-        "select model")   cmd_select ;;
+        "select model")   cmd_select || true ;;
         "login & download model") cmd_download ;;
         "start vllm")     cmd_start || true ;;
         "show logs")      cmd_logs ;;
@@ -77,5 +85,10 @@ menu() {
       esac
       break
     done
+    # select ends without reading a line when stdin closes.
+    if ((eof)); then
+      echo ""
+      return 0
+    fi
   done
 }
