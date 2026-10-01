@@ -15,7 +15,7 @@ fixture_context() {
 # Sandbox registry entries, in menu order: Qwen-A, Qwen-A:fast, Qwen-B, Qwen-C.
 test_select_model_without_variant() {
   select_model nvidia/Qwen-A
-  run_script --stdin $'3\n\n' select
+  run_script --stdin $'3\n' select
   assert_status 0
   assert_env "MODEL_ID=unsloth/Qwen-B"
   assert_env "MODEL_VARIANT="
@@ -25,7 +25,7 @@ test_select_model_without_variant() {
 
 test_select_model_with_variant() {
   select_model unsloth/Qwen-B
-  run_script --stdin $'2\n\n' select
+  run_script --stdin $'2\n' select
   assert_status 0
   assert_env "MODEL_ID=nvidia/Qwen-A"
   assert_env "MODEL_VARIANT=fast"
@@ -34,7 +34,7 @@ test_select_model_with_variant() {
 }
 
 test_select_invalid_choice_reprompts() {
-  run_script --stdin $'9\nx\n4\n\n' select
+  run_script --stdin $'9\nx\n4\n' select
   assert_status 0
   assert_out_contains "Invalid selection. Enter a number between 1 and 4."
   [[ "$(grep -c 'Invalid selection' <<<"${OUT}")" == 2 ]] || fail "expected 2 invalid prompts. Output: ${OUT}"
@@ -81,27 +81,27 @@ test_menu_eof_in_select_model_exits_zero() {
 }
 
 test_menu_quits_with_q() {
-  run_script --stdin $'q\n\n'
+  run_script --stdin $'q\n'
   assert_status 0
   assert_out_contains "(type 'q' to quit)"
   assert_log_lacks "rm --stop"
 }
 
 test_menu_invalid_choice() {
-  run_script --stdin $'99\nq\n\n'
+  run_script --stdin $'99\nq\n'
   assert_status 0
   assert_out_contains "Invalid selection."
 }
 
 test_menu_stop_routes_to_cmd_stop() {
-  run_script --stdin $'7\nq\n\n'
+  run_script --stdin $'7\nq\n'
   assert_status 0
   assert_log_contains "--profile ${SVC_A} rm --stop --force ${SVC_A}"
   assert_log_lacks "down --remove-orphans"
 }
 
 test_menu_select_routes_to_cmd_select() {
-  run_script --stdin $'2\n3\nq\n\n'
+  run_script --stdin $'2\n3\nq\n'
   assert_status 0
   assert_out_contains "Select the model to download and serve:"
   assert_env "MODEL_ID=unsloth/Qwen-B"
