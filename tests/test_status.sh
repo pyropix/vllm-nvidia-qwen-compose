@@ -9,10 +9,24 @@ use_status() {
     source "${SANDBOX}/lib/status.sh"
 }
 
-test_url_is_defined_once() {
-    local hits
-    hits="$(grep -rlE 'localhost:8000' "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
-    [[ "${hits}" == "${REPO_DIR}/lib/status.sh" ]] || fail "URL defined in: ${hits}"
+# ADR 0003: every copy of the vLLM address matches VLLM_ADDR. Lists all that don't.
+test_vllm_addr_copies_match() {
+    # shellcheck source=lib/status.sh
+    source "${REPO_DIR}/lib/status.sh"
+    local url="http://${VLLM_ADDR}/v1" port="${VLLM_ADDR##*:}" compose="${REPO_DIR}/docker-compose.yml"
+    local bad=() hits ports p
+    hits="$(grep -rlF "${VLLM_ADDR}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
+    [[ "${hits}" == "${REPO_DIR}/lib/status.sh" ]] || bad+=("shell literal in: ${hits}")
+    grep -qxF "const BASE_URL = \"${url}\";" "${REPO_DIR}/.pi/extensions/pi-vllm-qwen/index.ts" ||
+        bad+=("index.ts BASE_URL")
+    [[ "$(jq -r '.providers["vllm-qwen"].baseUrl' "${REPO_DIR}/settings/.pi/agent/models.json")" == "${url}" ]] ||
+        bad+=("settings/.pi/agent/models.json baseUrl")
+    ports="$(grep -oE -- '--port [0-9]+' "${compose}" | cut -d' ' -f2)"
+    [[ -n "${ports}" ]] || bad+=("docker-compose.yml has no --port")
+    for p in ${ports}; do
+        [[ "${p}" == "${port}" ]] || bad+=("docker-compose.yml --port ${p}")
+    done
+    ((${#bad[@]} == 0)) || fail "disagree with VLLM_ADDR=${VLLM_ADDR}: ${bad[*]}"
 }
 
 test_query_models_asks_the_models_url() {
