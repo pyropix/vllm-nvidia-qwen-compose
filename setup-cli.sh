@@ -13,144 +13,144 @@ HF_CLI_DIR="${HF_CLI_DIR:-${HOME}/.hf-cli}"
 # Source: https://huggingface.co/docs/huggingface_hub/en/guides/cli
 
 cmd_hf_install() {
-    curl -LsSf https://hf.co/cli/install.sh | bash
+  curl -LsSf https://hf.co/cli/install.sh | bash
 }
 
 cmd_hf_reinstall() {
-    curl -LsSf https://hf.co/cli/install.sh | bash -s -- --force
+  curl -LsSf https://hf.co/cli/install.sh | bash -s -- --force
 }
 
 cmd_hf_with_transformers() {
-    curl -LsSf https://hf.co/cli/install.sh | bash -s -- --with-transformers
+  curl -LsSf https://hf.co/cli/install.sh | bash -s -- --with-transformers
 }
 
 cmd_hf_check() {
-    if [[ -x "${HF_CLI_BIN}" ]]; then
-        echo "hf CLI found at ${HF_CLI_BIN}"
-        "${HF_CLI_BIN}" version
-    else
-        echo "hf CLI not installed (expected at ${HF_CLI_BIN})."
-        exit 1
-    fi
+  if [[ -x "${HF_CLI_BIN}" ]]; then
+    echo "hf CLI found at ${HF_CLI_BIN}"
+    "${HF_CLI_BIN}" version
+  else
+    echo "hf CLI not installed (expected at ${HF_CLI_BIN})."
+    exit 1
+  fi
 }
 
 cmd_hf_uninstall() {
-    rm -f "${HF_CLI_BIN}"
-    rm -rf "${HF_CLI_DIR}"
-    echo "Removed ${HF_CLI_BIN} and ${HF_CLI_DIR}"
+  rm -f "${HF_CLI_BIN}"
+  rm -rf "${HF_CLI_DIR}"
+  echo "Removed ${HF_CLI_BIN} and ${HF_CLI_DIR}"
 }
 
 ## pi agent CLI
 # Source: https://pi.dev
 
 cmd_pi_install() {
-    curl -fsSL https://pi.dev/install.sh | sh
+  curl -fsSL https://pi.dev/install.sh | sh
 }
 
 cmd_pi_check() {
-    if command -v pi &>/dev/null; then
-        echo "pi agent CLI found"
-        pi --version
-    else
-        echo "pi agent CLI not installed."
-        exit 1
-    fi
+  if command -v pi &>/dev/null; then
+    echo "pi agent CLI found"
+    pi --version
+  else
+    echo "pi agent CLI not installed."
+    exit 1
+  fi
 }
 
 cmd_pi_update() {
-    pi update
+  pi update
 }
 
 cmd_pi_uninstall() {
-    npm uninstall -g @earendil-works/pi-coding-agent
+  npm uninstall -g @earendil-works/pi-coding-agent
 }
 
 ## jq (reads models.json in vllm-serve.sh)
 
 cmd_jq_install() {
-    sudo apt-get install -y jq
+  sudo apt-get install -y jq
 }
 
 cmd_jq_check() {
-    if command -v jq &>/dev/null; then
-        echo "jq found"
-        jq --version
-    else
-        echo "jq not installed."
-        exit 1
-    fi
+  if command -v jq &>/dev/null; then
+    echo "jq found"
+    jq --version
+  else
+    echo "jq not installed."
+    exit 1
+  fi
 }
 
 usage() {
-    echo "Usage: $(basename "$0") [hf-install|hf-reinstall|hf-with-transformers|hf-check|hf-uninstall|pi-install|pi-check|pi-update|pi-uninstall|jq-install|jq-check]"
-    echo ""
-    echo "Hugging Face CLI:"
-    echo "  hf-install           Install the hf CLI (reuses existing venv if present)"
-    echo "  hf-reinstall         Recreate the hf CLI virtual environment (--force)"
-    echo "  hf-with-transformers Install the hf CLI with the transformers extra"
-    echo "  hf-check             Show whether the hf CLI is installed and its version"
-    echo "  hf-uninstall         Remove the hf CLI and its virtual environment"
-    echo ""
-    echo "pi agent CLI:"
-    echo "  pi-install           Install the pi agent CLI"
-    echo "  pi-check             Show whether the pi agent CLI is installed and its version"
-    echo "  pi-update            Update the pi agent CLI to the latest version"
-    echo "  pi-uninstall         Remove the pi agent CLI (keeps ~/.pi config)"
-    echo ""
-    echo "jq:"
-    echo "  jq-install           Install jq via apt (needed to read models.json)"
-    echo "  jq-check             Show whether jq is installed and its version"
-    echo ""
-    echo "Run without arguments for an interactive menu."
+  echo "Usage: $(basename "$0") [hf-install|hf-reinstall|hf-with-transformers|hf-check|hf-uninstall|pi-install|pi-check|pi-update|pi-uninstall|jq-install|jq-check]"
+  echo ""
+  echo "Hugging Face CLI:"
+  echo "  hf-install           Install the hf CLI (reuses existing venv if present)"
+  echo "  hf-reinstall         Recreate the hf CLI virtual environment (--force)"
+  echo "  hf-with-transformers Install the hf CLI with the transformers extra"
+  echo "  hf-check             Show whether the hf CLI is installed and its version"
+  echo "  hf-uninstall         Remove the hf CLI and its virtual environment"
+  echo ""
+  echo "pi agent CLI:"
+  echo "  pi-install           Install the pi agent CLI"
+  echo "  pi-check             Show whether the pi agent CLI is installed and its version"
+  echo "  pi-update            Update the pi agent CLI to the latest version"
+  echo "  pi-uninstall         Remove the pi agent CLI (keeps ~/.pi config)"
+  echo ""
+  echo "jq:"
+  echo "  jq-install           Install jq via apt (needed to read models.json)"
+  echo "  jq-check             Show whether jq is installed and its version"
+  echo ""
+  echo "Run without arguments for an interactive menu."
 }
 
 menu() {
-    local actions=(
-        "install hf CLI" "reinstall hf CLI (force)" "install hf CLI with transformers"
-        "check hf CLI" "uninstall hf CLI"
-        "install pi agent CLI" "check pi agent CLI" "update pi agent CLI" "uninstall pi agent CLI"
-        "install jq" "check jq"
-    )
-    while true; do
-        echo ""
-        echo "Install & manage CLIs — choose an action:"
-        echo "  (type 'q' to quit)"
-        select action in "${actions[@]}"; do
-            if [[ "${REPLY}" == "q" ]]; then
-                return
-            fi
-            case "${action}" in
-                "install hf CLI")                   cmd_hf_install ;;
-                "reinstall hf CLI (force)")         cmd_hf_reinstall ;;
-                "install hf CLI with transformers") cmd_hf_with_transformers ;;
-                "check hf CLI")                     cmd_hf_check ;;
-                "uninstall hf CLI")                 cmd_hf_uninstall ;;
-                "install pi agent CLI")             cmd_pi_install ;;
-                "check pi agent CLI")               cmd_pi_check ;;
-                "update pi agent CLI")               cmd_pi_update ;;
-                "uninstall pi agent CLI")            cmd_pi_uninstall ;;
-                "install jq")                        cmd_jq_install ;;
-                "check jq")                          cmd_jq_check ;;
-                *)                                   echo "Invalid selection." ;;
-            esac
-            break
-        done
+  local actions=(
+    "install hf CLI" "reinstall hf CLI (force)" "install hf CLI with transformers"
+    "check hf CLI" "uninstall hf CLI"
+    "install pi agent CLI" "check pi agent CLI" "update pi agent CLI" "uninstall pi agent CLI"
+    "install jq" "check jq"
+  )
+  while true; do
+    echo ""
+    echo "Install & manage CLIs — choose an action:"
+    echo "  (type 'q' to quit)"
+    select action in "${actions[@]}"; do
+      if [[ "${REPLY}" == "q" ]]; then
+        return
+      fi
+      case "${action}" in
+        "install hf CLI")                   cmd_hf_install ;;
+        "reinstall hf CLI (force)")         cmd_hf_reinstall ;;
+        "install hf CLI with transformers") cmd_hf_with_transformers ;;
+        "check hf CLI")                     cmd_hf_check ;;
+        "uninstall hf CLI")                 cmd_hf_uninstall ;;
+        "install pi agent CLI")             cmd_pi_install ;;
+        "check pi agent CLI")               cmd_pi_check ;;
+        "update pi agent CLI")               cmd_pi_update ;;
+        "uninstall pi agent CLI")            cmd_pi_uninstall ;;
+        "install jq")                        cmd_jq_install ;;
+        "check jq")                          cmd_jq_check ;;
+        *)                                   echo "Invalid selection." ;;
+      esac
+      break
     done
+  done
 }
 
 case "${1:-}" in
-    hf-install)           cmd_hf_install ;;
-    hf-reinstall)         cmd_hf_reinstall ;;
-    hf-with-transformers) cmd_hf_with_transformers ;;
-    hf-check)             cmd_hf_check ;;
-    hf-uninstall)         cmd_hf_uninstall ;;
-    pi-install)           cmd_pi_install ;;
-    pi-check)             cmd_pi_check ;;
-    pi-update)            cmd_pi_update ;;
-    pi-uninstall)         cmd_pi_uninstall ;;
-    jq-install)           cmd_jq_install ;;
-    jq-check)             cmd_jq_check ;;
-    help|--help|-h)       usage ;;
-    "")                   menu ;;
-    *)                    echo "Unknown command: $1" >&2; usage >&2; exit 1 ;;
+  hf-install)           cmd_hf_install ;;
+  hf-reinstall)         cmd_hf_reinstall ;;
+  hf-with-transformers) cmd_hf_with_transformers ;;
+  hf-check)             cmd_hf_check ;;
+  hf-uninstall)         cmd_hf_uninstall ;;
+  pi-install)           cmd_pi_install ;;
+  pi-check)             cmd_pi_check ;;
+  pi-update)            cmd_pi_update ;;
+  pi-uninstall)         cmd_pi_uninstall ;;
+  jq-install)           cmd_jq_install ;;
+  jq-check)             cmd_jq_check ;;
+  help|--help|-h)       usage ;;
+  "")                   menu ;;
+  *)                    echo "Unknown command: $1" >&2; usage >&2; exit 1 ;;
 esac

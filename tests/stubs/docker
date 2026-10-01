@@ -4,7 +4,7 @@
 echo "docker $*" >>"${STUB_LOG}"
 echo "docker-env MAX_MODEL_LEN=${MAX_MODEL_LEN-}" >>"${STUB_LOG}"
 for arg in "$@"; do
-    if [[ "${arg}" == ps ]]; then cat "${STUB_DOCKER_PS}"; fi
-    if [[ "${arg}" == logs ]]; then cat "${STUB_DOCKER_LOGS}"; fi
+  if [[ "${arg}" == ps ]]; then cat "${STUB_DOCKER_PS}"; fi
+  if [[ "${arg}" == logs ]]; then cat "${STUB_DOCKER_LOGS}"; fi
 done
 exit 0

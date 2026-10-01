@@ -24,18 +24,18 @@ source "${SCRIPT_DIR}/lib/tools.sh"
 source "${SCRIPT_DIR}/lib/ui.sh"
 
 case "${1:-}" in
-    status)         cmd_status ;;
-    select)         cmd_select ;;
-    download)       cmd_download ;;
-    start)          cmd_start ;;
-    logs)           cmd_logs ;;
-    ready)          cmd_ready "${2:-}" ;;
-    stop)           cmd_stop "${2:-}" ;;
-    reset-metrics)  cmd_reset_metrics "${2:-}" ;;
-    pi)             cmd_pi ;;
-    link)           cmd_link ;;
-    unlink)         cmd_unlink ;;
-    help|--help|-h) usage ;;
-    "")             menu ;;
-    *)              echo "Unknown command: $1" >&2; usage >&2; exit 1 ;;
+  status)         cmd_status ;;
+  select)         cmd_select ;;
+  download)       cmd_download ;;
+  start)          cmd_start ;;
+  logs)           cmd_logs ;;
+  ready)          cmd_ready "${2:-}" ;;
+  stop)           cmd_stop "${2:-}" ;;
+  reset-metrics)  cmd_reset_metrics "${2:-}" ;;
+  pi)             cmd_pi ;;
+  link)           cmd_link ;;
+  unlink)         cmd_unlink ;;
+  help|--help|-h) usage ;;
+  "")             menu ;;
+  *)              echo "Unknown command: $1" >&2; usage >&2; exit 1 ;;
 esac

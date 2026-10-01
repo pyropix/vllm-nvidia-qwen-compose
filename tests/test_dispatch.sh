@@ -6,28 +6,28 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # Replace the modules in the sandbox with stubs that print the route taken, so
 # the tests see only what the dispatcher does with its arguments.
 stub_modules() {
-    local module fn
-    for module in "${SANDBOX}"/lib/*.sh; do : >"${module}"; done
-    for fn in cmd_status cmd_select cmd_download cmd_start cmd_logs cmd_ready \
-        cmd_stop cmd_reset_metrics cmd_pi cmd_link cmd_unlink usage menu; do
-        printf '%s() { echo "route:%s $*"; }\n' "${fn}" "${fn}" >>"${SANDBOX}/lib/ui.sh"
-    done
+  local module fn
+  for module in "${SANDBOX}"/lib/*.sh; do : >"${module}"; done
+  for fn in cmd_status cmd_select cmd_download cmd_start cmd_logs cmd_ready \
+    cmd_stop cmd_reset_metrics cmd_pi cmd_link cmd_unlink usage menu; do
+    printf '%s() { echo "route:%s $*"; }\n' "${fn}" "${fn}" >>"${SANDBOX}/lib/ui.sh"
+  done
 }
 
 test_script_has_only_sourcing_and_dispatch() {
-    local defs
-    defs="$(grep -cE '^[A-Za-z_]+\(\) *\{' "${REPO_DIR}/vllm-serve.sh" || true)"
-    [[ "${defs}" == 0 ]] || fail "vllm-serve.sh defines ${defs} functions"
+  local defs
+  defs="$(grep -cE '^[A-Za-z_]+\(\) *\{' "${REPO_DIR}/vllm-serve.sh" || true)"
+  [[ "${defs}" == 0 ]] || fail "vllm-serve.sh defines ${defs} functions"
 }
 
 # Each command routes to its function, passing the arguments it takes.
 assert_route() {
-    local expected="$1"
-    shift
-    stub_modules
-    run_script "$@"
-    assert_status 0
-    [[ "${OUT}" == "route:${expected}" ]] || fail "'$*' routed to '${OUT}', expected 'route:${expected}'"
+  local expected="$1"
+  shift
+  stub_modules
+  run_script "$@"
+  assert_status 0
+  [[ "${OUT}" == "route:${expected}" ]] || fail "'$*' routed to '${OUT}', expected 'route:${expected}'"
 }
 
 test_status_routes()        { assert_route "cmd_status " status; }
@@ -50,21 +50,21 @@ test_help_word_routes()     { assert_route "usage " help; }
 test_short_help_routes()    { assert_route "usage " -h; }
 
 test_unknown_command_fails_with_usage() {
-    stub_modules
-    run_script bogus
-    assert_status 1
-    assert_out_contains "Unknown command: bogus"
-    assert_out_contains "route:usage"
+  stub_modules
+  run_script bogus
+  assert_status 1
+  assert_out_contains "Unknown command: bogus"
+  assert_out_contains "route:usage"
 }
 
 # Without stubs, --help prints the real usage text listing every command.
 test_help_lists_every_command() {
-    run_script --help
-    assert_status 0
-    local cmd
-    for cmd in status select download start logs ready stop reset-metrics pi link unlink; do
-        assert_out_contains "  ${cmd} "
-    done
+  run_script --help
+  assert_status 0
+  local cmd
+  for cmd in status select download start logs ready stop reset-metrics pi link unlink; do
+    assert_out_contains "  ${cmd} "
+  done
 }
 
 run_tests

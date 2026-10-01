@@ -2,6 +2,6 @@
 # Stub hf: log argv. Fails when argv contains $STUB_HF_FAIL (if set).
 echo "hf $*" >>"${STUB_LOG}"
 if [[ -n "${STUB_HF_FAIL:-}" && "$*" == *"${STUB_HF_FAIL}"* ]]; then
-    echo "hf: simulated failure" >&2
-    exit 1
+  echo "hf: simulated failure" >&2
+  exit 1
 fi

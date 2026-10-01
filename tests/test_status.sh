@@ -5,111 +5,111 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 # Source the module from the sandbox copy.
 use_status() {
-    # shellcheck source=lib/status.sh
-    source "${SANDBOX}/lib/status.sh"
+  # shellcheck source=lib/status.sh
+  source "${SANDBOX}/lib/status.sh"
 }
 
 # ADR 0003: every copy of the vLLM address matches VLLM_ADDR. Lists all that don't.
 test_vllm_addr_copies_match() {
-    # shellcheck source=lib/status.sh
-    source "${REPO_DIR}/lib/status.sh"
-    local url="http://${VLLM_ADDR}/v1" port="${VLLM_ADDR##*:}" compose="${REPO_DIR}/docker-compose.yml"
-    local bad=() hits ports p
-    hits="$(grep -rlF "${VLLM_ADDR}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
-    [[ "${hits}" == "${REPO_DIR}/lib/status.sh" ]] || bad+=("shell literal in: ${hits}")
-    grep -qxF "const BASE_URL = \"${url}\";" "${REPO_DIR}/.pi/extensions/pi-vllm-qwen/index.ts" ||
-        bad+=("index.ts BASE_URL")
-    [[ "$(jq -r '.providers["vllm-qwen"].baseUrl' "${REPO_DIR}/settings/.pi/agent/models.json")" == "${url}" ]] ||
-        bad+=("settings/.pi/agent/models.json baseUrl")
-    ports="$(grep -oE -- '--port [0-9]+' "${compose}" | cut -d' ' -f2)"
-    [[ -n "${ports}" ]] || bad+=("docker-compose.yml has no --port")
-    for p in ${ports}; do
-        [[ "${p}" == "${port}" ]] || bad+=("docker-compose.yml --port ${p}")
-    done
-    ((${#bad[@]} == 0)) || fail "disagree with VLLM_ADDR=${VLLM_ADDR}: ${bad[*]}"
+  # shellcheck source=lib/status.sh
+  source "${REPO_DIR}/lib/status.sh"
+  local url="http://${VLLM_ADDR}/v1" port="${VLLM_ADDR##*:}" compose="${REPO_DIR}/docker-compose.yml"
+  local bad=() hits ports p
+  hits="$(grep -rlF "${VLLM_ADDR}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
+  [[ "${hits}" == "${REPO_DIR}/lib/status.sh" ]] || bad+=("shell literal in: ${hits}")
+  grep -qxF "const BASE_URL = \"${url}\";" "${REPO_DIR}/.pi/extensions/pi-vllm-qwen/index.ts" ||
+    bad+=("index.ts BASE_URL")
+  [[ "$(jq -r '.providers["vllm-qwen"].baseUrl' "${REPO_DIR}/settings/.pi/agent/models.json")" == "${url}" ]] ||
+    bad+=("settings/.pi/agent/models.json baseUrl")
+  ports="$(grep -oE -- '--port [0-9]+' "${compose}" | cut -d' ' -f2)"
+  [[ -n "${ports}" ]] || bad+=("docker-compose.yml has no --port")
+  for p in ${ports}; do
+    [[ "${p}" == "${port}" ]] || bad+=("docker-compose.yml --port ${p}")
+  done
+  ((${#bad[@]} == 0)) || fail "disagree with VLLM_ADDR=${VLLM_ADDR}: ${bad[*]}"
 }
 
 test_query_models_asks_the_models_url() {
-    use_status
-    echo '{"data":[]}' >"${STUB_CURL_OUT}"
-    query_models >/dev/null
-    assert_log_contains "${VLLM_MODELS_URL}"
+  use_status
+  echo '{"data":[]}' >"${STUB_CURL_OUT}"
+  query_models >/dev/null
+  assert_log_contains "${VLLM_MODELS_URL}"
 }
 
 test_ready_summary_lists_models_when_ready() {
-    use_status
-    echo '{"data":[{"id":"nvidia/Qwen-A"},{"id":"other"}]}' >"${STUB_CURL_OUT}"
-    [[ "$(ready_summary)" == "yes (nvidia/Qwen-A, other)" ]] || fail "summary: $(ready_summary)"
+  use_status
+  echo '{"data":[{"id":"nvidia/Qwen-A"},{"id":"other"}]}' >"${STUB_CURL_OUT}"
+  [[ "$(ready_summary)" == "yes (nvidia/Qwen-A, other)" ]] || fail "summary: $(ready_summary)"
 }
 
 # curl exits 22 when vLLM answers with an HTTP error (not ready yet).
 test_ready_summary_when_not_ready() {
-    use_status
-    STUB_CURL_FAIL=1 STUB_CURL_EXIT=22
-    export STUB_CURL_FAIL STUB_CURL_EXIT
-    [[ "$(ready_summary)" == "no (still starting?)" ]] || fail "summary: $(ready_summary)"
+  use_status
+  STUB_CURL_FAIL=1 STUB_CURL_EXIT=22
+  export STUB_CURL_FAIL STUB_CURL_EXIT
+  [[ "$(ready_summary)" == "no (still starting?)" ]] || fail "summary: $(ready_summary)"
 }
 
 # curl exits 7 when nothing listens on the port.
 test_ready_summary_when_unreachable() {
-    use_status
-    STUB_CURL_FAIL=1 STUB_CURL_EXIT=7
-    export STUB_CURL_FAIL STUB_CURL_EXIT
-    [[ "$(ready_summary)" == "no (still starting?)" ]] || fail "summary: $(ready_summary)"
+  use_status
+  STUB_CURL_FAIL=1 STUB_CURL_EXIT=7
+  export STUB_CURL_FAIL STUB_CURL_EXIT
+  [[ "$(ready_summary)" == "no (still starting?)" ]] || fail "summary: $(ready_summary)"
 }
 
 # status lists every Model ID's Download from the same completeness check as
 # download/start: weights present but Draft model missing is incomplete, and a
 # Draft model shared by two Model IDs completes both.
 test_status_lists_mixed_downloads_of_every_model_id() {
-    fake_download nvidia/Qwen-A
-    fake_download unsloth/Qwen-B
-    run_script status
-    assert_status 0
-    assert_out_contains "nvidia/Qwen-A  incomplete (missing: z-lab/Draft-A)"
-    assert_out_contains "unsloth/Qwen-B  complete"
-    assert_out_contains "unsloth/Qwen-C  incomplete (missing: unsloth/Qwen-C z-lab/Draft-A)"
+  fake_download nvidia/Qwen-A
+  fake_download unsloth/Qwen-B
+  run_script status
+  assert_status 0
+  assert_out_contains "nvidia/Qwen-A  incomplete (missing: z-lab/Draft-A)"
+  assert_out_contains "unsloth/Qwen-B  complete"
+  assert_out_contains "unsloth/Qwen-C  incomplete (missing: unsloth/Qwen-C z-lab/Draft-A)"
 }
 
 test_status_shared_draft_completes_every_model_id_using_it() {
-    fake_download nvidia/Qwen-A
-    fake_download unsloth/Qwen-C
-    fake_download z-lab/Draft-A
-    run_script status
-    assert_out_contains "nvidia/Qwen-A  complete"
-    assert_out_contains "unsloth/Qwen-B  incomplete (missing: unsloth/Qwen-B)"
-    assert_out_contains "unsloth/Qwen-C  complete"
+  fake_download nvidia/Qwen-A
+  fake_download unsloth/Qwen-C
+  fake_download z-lab/Draft-A
+  run_script status
+  assert_out_contains "nvidia/Qwen-A  complete"
+  assert_out_contains "unsloth/Qwen-B  incomplete (missing: unsloth/Qwen-B)"
+  assert_out_contains "unsloth/Qwen-C  complete"
 }
 
 # An interrupted download of one Model ID does not mark the others incomplete.
 test_status_interrupted_download_only_affects_its_model_id() {
-    fake_download nvidia/Qwen-A
-    fake_download z-lab/Draft-A
-    fake_download unsloth/Qwen-B
-    touch "$(fake_repo_dir unsloth/Qwen-B)/blobs/w.incomplete"
-    run_script status
-    assert_out_contains "nvidia/Qwen-A  complete"
-    assert_out_contains "unsloth/Qwen-B  incomplete (missing: unsloth/Qwen-B)"
+  fake_download nvidia/Qwen-A
+  fake_download z-lab/Draft-A
+  fake_download unsloth/Qwen-B
+  touch "$(fake_repo_dir unsloth/Qwen-B)/blobs/w.incomplete"
+  run_script status
+  assert_out_contains "nvidia/Qwen-A  complete"
+  assert_out_contains "unsloth/Qwen-B  incomplete (missing: unsloth/Qwen-B)"
 }
 
 test_cmd_ready_lists_models_when_ready() {
-    use_status
-    echo '{"data":[{"id":"nvidia/Qwen-A"},{"id":"other"}]}' >"${STUB_CURL_OUT}"
-    local out status=0
-    out="$(cmd_ready 2>&1)" || status=$?
-    [[ "${status}" == 0 ]] || fail "exit ${status}"
-    [[ "${out}" == $'vLLM is ready. Models:\n  nvidia/Qwen-A\n  other' ]] || fail "output: ${out}"
+  use_status
+  echo '{"data":[{"id":"nvidia/Qwen-A"},{"id":"other"}]}' >"${STUB_CURL_OUT}"
+  local out status=0
+  out="$(cmd_ready 2>&1)" || status=$?
+  [[ "${status}" == 0 ]] || fail "exit ${status}"
+  [[ "${out}" == $'vLLM is ready. Models:\n  nvidia/Qwen-A\n  other' ]] || fail "output: ${out}"
 }
 
 # Without --wait, a failed check returns 1; $1 is the curl exit code.
 assert_cmd_ready_fails_with_curl_exit() {
-    use_status
-    STUB_CURL_FAIL=1 STUB_CURL_EXIT="$1"
-    export STUB_CURL_FAIL STUB_CURL_EXIT
-    local out status=0
-    out="$(cmd_ready 2>&1)" || status=$?
-    [[ "${status}" == 1 ]] || fail "exit ${status}"
-    [[ "${out}" == "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." ]] || fail "output: ${out}"
+  use_status
+  STUB_CURL_FAIL=1 STUB_CURL_EXIT="$1"
+  export STUB_CURL_FAIL STUB_CURL_EXIT
+  local out status=0
+  out="$(cmd_ready 2>&1)" || status=$?
+  [[ "${status}" == 1 ]] || fail "exit ${status}"
+  [[ "${out}" == "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." ]] || fail "output: ${out}"
 }
 
 # curl exits 22 when vLLM answers with an HTTP error (not ready yet).
@@ -121,24 +121,24 @@ test_cmd_ready_when_unreachable() { assert_cmd_ready_fails_with_curl_exit 7; }
 # --wait polls until vLLM answers. sleep is replaced: it logs and, on the
 # second call, lets the stub curl succeed, so the third poll answers.
 test_cmd_ready_wait_polls_until_ready() {
-    use_status
-    echo '{"data":[{"id":"nvidia/Qwen-A"}]}' >"${STUB_CURL_OUT}"
-    STUB_CURL_FAIL=1 STUB_CURL_EXIT=7
-    export STUB_CURL_FAIL STUB_CURL_EXIT
-    local sleeps="${SANDBOX}/sleeps"
-    : >"${sleeps}"
-    # shellcheck disable=SC2317  # invoked by cmd_ready
-    sleep() {
-        echo "sleep $*" >>"${sleeps}"
-        (( $(wc -l <"${sleeps}") < 2 )) || STUB_CURL_FAIL=""
-    }
-    local out status=0
-    out="$(cmd_ready --wait 2>&1)" || status=$?
-    [[ "${status}" == 0 ]] || fail "exit ${status}"
-    [[ "$(grep -c '^curl ' "${STUB_LOG}")" == 3 ]] || fail "polls: $(stub_log)"
-    [[ "$(cat "${sleeps}")" == $'sleep 5\nsleep 5' ]] || fail "sleeps: $(cat "${sleeps}")"
-    [[ "$(grep -c '^Waiting for vLLM' <<<"${out}")" == 2 ]] || fail "output: ${out}"
-    [[ "${out}" == *$'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "output: ${out}"
+  use_status
+  echo '{"data":[{"id":"nvidia/Qwen-A"}]}' >"${STUB_CURL_OUT}"
+  STUB_CURL_FAIL=1 STUB_CURL_EXIT=7
+  export STUB_CURL_FAIL STUB_CURL_EXIT
+  local sleeps="${SANDBOX}/sleeps"
+  : >"${sleeps}"
+  # shellcheck disable=SC2317  # invoked by cmd_ready
+  sleep() {
+    echo "sleep $*" >>"${sleeps}"
+    (( $(wc -l <"${sleeps}") < 2 )) || STUB_CURL_FAIL=""
+  }
+  local out status=0
+  out="$(cmd_ready --wait 2>&1)" || status=$?
+  [[ "${status}" == 0 ]] || fail "exit ${status}"
+  [[ "$(grep -c '^curl ' "${STUB_LOG}")" == 3 ]] || fail "polls: $(stub_log)"
+  [[ "$(cat "${sleeps}")" == $'sleep 5\nsleep 5' ]] || fail "sleeps: $(cat "${sleeps}")"
+  [[ "$(grep -c '^Waiting for vLLM' <<<"${out}")" == 2 ]] || fail "output: ${out}"
+  [[ "${out}" == *$'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "output: ${out}"
 }
 
 run_tests
