@@ -3,9 +3,9 @@
 # running-service detection and status rendering. Sourced by vllm-serve.sh,
 # which provides compose, load_env, download_state and the registry module.
 
-# host:port vLLM listens on; all variants share it. The only place it is defined.
-VLLM_HOST="localhost:8000"
-VLLM_MODELS_URL="http://${VLLM_HOST}/v1/models"
+# host:port vLLM listens on; all variants share it. The shell scripts take it from here.
+VLLM_ADDR="localhost:8000"
+VLLM_MODELS_URL="http://${VLLM_ADDR}/v1/models"
 
 # Print the GET /v1/models response; fails while vLLM does not answer.
 query_models() {

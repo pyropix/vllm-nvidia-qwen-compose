@@ -242,7 +242,7 @@ write_run_target() {
     mkdir -p "$(dirname "${TARGETS_FILE}")"
     jq -n --arg id "${MODEL_ID}" --arg variant "${MODEL_VARIANT:-}" \
         --arg run_start "${run_start}" --arg run "${run}" \
-        --arg target "${VLLM_HOST}" \
+        --arg target "${VLLM_ADDR}" \
         '[{targets: [$target],
            labels: {model_id: $id, variant: $variant, run_start: $run_start, run: $run}}]' >"${tmp}"
     # Rename so Prometheus never reads a half-written file.
