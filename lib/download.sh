@@ -15,6 +15,7 @@ is_cached_file() {
 # the default (model) is a Model ID's weights repo.
 is_downloaded() {
   local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard index link
+  local blobs="${repo_dir}/blobs"
   [[ -f "${repo_dir}/refs/main" ]] || return 1
   rev="$(<"${repo_dir}/refs/main")"
   snapshot="${repo_dir}/snapshots/${rev}"
@@ -26,7 +27,7 @@ is_downloaded() {
   local blob
   while IFS= read -r link; do
     blob="$(readlink "${link}")"
-    blob="${repo_dir}/blobs/${blob##*/}"
+    blob="${blobs}/${blob##*/}"
     [[ ! -e "${blob}.incomplete" ]] || return 1
     ! compgen -G "${blob}.????????.incomplete" >/dev/null || return 1
   done < <(find "${snapshot}" -type l)
@@ -36,7 +37,7 @@ is_downloaded() {
   # heuristic and its limits: docs/adr/0004-stale-incomplete-blobs-by-mtime.md.
   while IFS= read -r link; do
     [[ "${repo_dir}/refs/main" -nt "${link}" ]] || return 1
-  done < <(find "${repo_dir}/blobs" -name '*.incomplete' 2>/dev/null)
+  done < <(find "${blobs}" -name '*.incomplete' 2>/dev/null)
   # Every shard listed in a safetensors weight index must be present as a
   # snapshot symlink resolved to a blob, like the required files below. A malformed
   # index (not JSON, or no non-empty weight_map of shard names) is incomplete.
@@ -45,16 +46,16 @@ is_downloaded() {
     jq -e '.weight_map | type == "object" and length > 0 and all(.[]; type == "string")' \
       "${index}" >/dev/null 2>&1 || return 1
     while IFS= read -r shard; do
-      is_cached_file "${snapshot}/${shard}" "${repo_dir}/blobs" || return 1
+      is_cached_file "${snapshot}/${shard}" "${blobs}" || return 1
     done < <(jq -r '.weight_map[]' "${index}" | sort -u)
   done
   # A fixed set of required files, each a snapshot symlink resolved to a blob
   # (a regular file placed by hand does not count): config.json, and a tokenizer
   # for a Model ID. A Draft model uses its target's tokenizer.
   # Decision and limits: docs/adr/0005-fixed-required-files.md.
-  is_cached_file "${snapshot}/config.json" "${repo_dir}/blobs" || return 1
-  [[ "${2:-model}" == draft ]] || is_cached_file "${snapshot}/tokenizer.json" "${repo_dir}/blobs" \
-    || is_cached_file "${snapshot}/tokenizer_config.json" "${repo_dir}/blobs" || return 1
+  is_cached_file "${snapshot}/config.json" "${blobs}" || return 1
+  [[ "${2:-model}" == draft ]] || is_cached_file "${snapshot}/tokenizer.json" "${blobs}" \
+    || is_cached_file "${snapshot}/tokenizer_config.json" "${blobs}" || return 1
   # At least one safetensors file. Every Model ID and Draft model in the registry
   # ships safetensors, so other weight formats are not supported.
   compgen -G "${snapshot}/*.safetensors" >/dev/null
