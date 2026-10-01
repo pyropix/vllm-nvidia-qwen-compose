@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Stub docker: log argv; `ps` prints the canned lines from $STUB_DOCKER_PS.
+echo "docker $*" >>"${STUB_LOG}"
+for arg in "$@"; do
+    if [[ "${arg}" == ps ]]; then cat "${STUB_DOCKER_PS}"; fi
+done
+exit 0

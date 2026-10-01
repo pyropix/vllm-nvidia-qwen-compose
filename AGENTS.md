@@ -7,6 +7,7 @@ OpenAI-compatible API: `http://localhost:8000`. Quickstart: `README.md`; launch 
 
 - `./vllm-serve.sh` — select/download/start/stop vLLM (run with no args for a menu, or see `--help`)
 - `./setup-cli.sh` — install/manage the `hf` and pi CLIs and `jq`
+- `./tests/run.sh` — test `vllm-serve.sh` against a fake HF cache and stub `docker`/`hf`/`curl`/`pi` (needs `jq`)
 
 ## Git
 

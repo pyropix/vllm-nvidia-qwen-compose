@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Stub hf: log argv.
+echo "hf $*" >>"${STUB_LOG}"
