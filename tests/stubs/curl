@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stub curl: log argv; fail when $STUB_CURL_FAIL is set, else print $STUB_CURL_OUT.
+# Stub curl: log argv; fail (exit $STUB_CURL_EXIT, default 22) when $STUB_CURL_FAIL is set, else print $STUB_CURL_OUT.
 echo "curl $*" >>"${STUB_LOG}"
-[[ -n "${STUB_CURL_FAIL}" ]] && exit 22
+[[ -n "${STUB_CURL_FAIL}" ]] && exit "${STUB_CURL_EXIT:-22}"
 cat "${STUB_CURL_OUT}"

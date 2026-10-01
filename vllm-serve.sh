@@ -8,6 +8,8 @@ TARGETS_FILE="${SCRIPT_DIR}/monitoring/targets/vllm.json"
 
 # shellcheck source=lib/registry.sh
 source "${SCRIPT_DIR}/lib/registry.sh"
+# shellcheck source=lib/status.sh
+source "${SCRIPT_DIR}/lib/status.sh"
 
 # Fail when .env.vllm disagrees with the registry on the Draft model or context window.
 check_registry_env() {
@@ -204,92 +206,6 @@ cmd_select() {
     echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant} DRAFT_MODEL_ID=${draft} MAX_MODEL_LEN=${context}"
 }
 
-VLLM_MODELS_URL="http://localhost:8000/v1/models"
-
-# Print the GET /v1/models response; fails while vLLM does not answer.
-query_models() {
-    curl -fsS --max-time 5 "${VLLM_MODELS_URL}" 2>/dev/null
-}
-
-cmd_status() {
-    load_env
-    registry_load
-    local fmt="  %-10s %s\n"
-    echo ""
-    echo "Selected (${ENV_FILE})"
-    printf "${fmt}" "Model" "${MODEL_ID:--}"
-    printf "${fmt}" "Variant" "${MODEL_VARIANT:--}"
-    # Draft and Download both come from the registry, not from a possibly stale .env.vllm.
-    local draft="" context="" download="-"
-    if [[ -n "${MODEL_ID:-}" ]]; then
-        draft="$(registry_draft "${MODEL_ID}")"
-        context="$(registry_context "${MODEL_ID}")"
-        download="$(download_state "${MODEL_ID}")"
-    fi
-    printf "${fmt}" "Draft" "${draft:--}"
-    printf "${fmt}" "Context" "${context:--}"
-    printf "${fmt}" "Download" "${download}"
-    echo ""
-    echo "Downloads (all Model IDs in ${MODELS_FILE})"
-    local id
-    while IFS= read -r id; do
-        printf "  %s  %s\n" "${id}" "$(download_state "${id}")"
-    done < <(jq -r '.[].id' "${MODELS_FILE}")
-    echo ""
-    echo "Running"
-    local running=() svc model_id variant owner
-    while IFS= read -r svc; do
-        [[ "${svc}" == vllm-* ]] && running+=("${svc}")
-    done < <(compose --profile '*' ps --status running --format '{{.Service}}')
-    if (( ${#running[@]} == 0 )); then
-        printf "${fmt}" "Container" "none running"
-        echo ""
-        return
-    fi
-    for svc in "${running[@]}"; do
-        owner="$(registry_lookup_service "${svc}")"
-        if [[ -z "${owner}" ]]; then
-            printf "${fmt}" "Container" "${svc} (not in models.json)"
-            continue
-        fi
-        IFS=$'\t' read -r model_id variant <<<"${owner}"
-        printf "${fmt}" "Container" "${svc}"
-        printf "${fmt}" "Model" "${model_id}"
-        printf "${fmt}" "Variant" "${variant:--}"
-        printf "${fmt}" "Draft" "$(registry_draft "${model_id}")"
-        [[ "${model_id}" == "${MODEL_ID:-}" && "${variant}" == "${MODEL_VARIANT:-}" ]] \
-            && printf "${fmt}" "Selected" "yes" \
-            || printf "${fmt}" "Selected" "no (differs from selection)"
-    done
-    # All variants share host port 8000, so one readiness line covers them.
-    local response
-    if response="$(query_models)"; then
-        printf "${fmt}" "Ready" "yes ($(jq -r '[.data[].id] | join(", ")' <<<"${response}"))"
-    else
-        printf "${fmt}" "Ready" "no (still starting?)"
-    fi
-    echo ""
-}
-
-# Check whether vLLM answers GET /v1/models; with --wait, poll until it does.
-cmd_ready() {
-    local wait="" response
-    [[ "${1:-}" == "--wait" ]] && wait=1
-    while true; do
-        if response="$(query_models)"; then
-            echo "vLLM is ready. Models:"
-            jq -r '.data[].id | "  " + .' <<<"${response}"
-            return 0
-        fi
-        if [[ -z "${wait}" ]]; then
-            echo "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." >&2
-            return 1
-        fi
-        echo "Waiting for vLLM... (Ctrl+C to abort)"
-        sleep 5
-    done
-}
-
 cmd_download() {
     load_env
     if [[ -z "${HF_TOKEN:-}" ]]; then
@@ -326,7 +242,8 @@ write_run_target() {
     mkdir -p "$(dirname "${TARGETS_FILE}")"
     jq -n --arg id "${MODEL_ID}" --arg variant "${MODEL_VARIANT:-}" \
         --arg run_start "${run_start}" --arg run "${run}" \
-        '[{targets: ["localhost:8000"],
+        --arg target "${VLLM_HOST}" \
+        '[{targets: [$target],
            labels: {model_id: $id, variant: $variant, run_start: $run_start, run: $run}}]' >"${tmp}"
     # Rename so Prometheus never reads a half-written file.
     mv "${tmp}" "${TARGETS_FILE}"
@@ -334,15 +251,6 @@ write_run_target() {
 
 clear_run_target() {
     rm -f "${TARGETS_FILE}"
-}
-
-# Print the running vLLM services (one per line).
-running_vllm_services() {
-    local svc
-    while IFS= read -r svc; do
-        [[ "${svc}" == vllm-* ]] && echo "${svc}"
-    done < <(compose --profile '*' ps --status running --format '{{.Service}}')
-    return 0
 }
 
 cmd_start() {
