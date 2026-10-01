@@ -12,11 +12,17 @@ query_models() {
     curl -fsS --max-time 5 "${VLLM_MODELS_URL}" 2>/dev/null
 }
 
+# Print the model ids of a /v1/models response on stdin, one per line.
+served_model_ids() {
+    jq -r '.data[].id'
+}
+
 # Print the Ready state: "yes (model ids)" or "no (still starting?)".
 ready_summary() {
-    local response
+    local response ids
     if response="$(query_models)"; then
-        echo "yes ($(jq -r '[.data[].id] | join(", ")' <<<"${response}"))"
+        ids="$(served_model_ids <<<"${response}")"
+        echo "yes (${ids//$'\n'/, })"
     else
         echo "no (still starting?)"
     fi
@@ -93,7 +99,7 @@ cmd_ready() {
     while true; do
         if response="$(query_models)"; then
             echo "vLLM is ready. Models:"
-            jq -r '.data[].id | "  " + .' <<<"${response}"
+            served_model_ids <<<"${response}" | sed 's/^/  /'
             return 0
         fi
         if [[ -z "${wait}" ]]; then
