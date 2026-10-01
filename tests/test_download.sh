@@ -358,6 +358,27 @@ test_status_download_model_id_missing_tokenizer_incomplete() {
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
+# A required file counts only as a snapshot symlink to an existing blob (#40).
+test_status_download_model_id_config_regular_file_incomplete() {
+  fake_complete_download
+  local snapshot
+  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  rm "${snapshot}/config.json"
+  echo '{}' >"${snapshot}/config.json"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_model_id_tokenizer_regular_file_incomplete() {
+  fake_complete_download
+  local snapshot
+  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  rm "${snapshot}/tokenizer.json"
+  echo '{}' >"${snapshot}/tokenizer.json"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
 test_status_download_model_id_tokenizer_config_alone_complete() {
   fake_complete_download
   local snapshot
