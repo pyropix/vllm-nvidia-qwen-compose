@@ -480,7 +480,7 @@ cmd_unlink() {
 usage() {
     echo "Usage: $(basename "$0") [status|select|download|start|logs|ready|stop|reset-metrics|pi|link|unlink]"
     echo ""
-    echo "  status    Show selected model/variant/Draft and the running container"
+    echo "  status    Show selected model/variant/Draft, every Model ID's Download state and the running container"
     echo "  select    Pick model variant and write to .env.vllm"
     echo "  download  Login to HF and download model weights (and Draft model)"
     echo "  start     Pull image and start the vLLM container"
