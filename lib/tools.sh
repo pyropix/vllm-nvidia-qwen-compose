@@ -1,8 +1,7 @@
 # shellcheck shell=bash
 # Tools module: the pi command and the vllm-serve symlink commands.
 # Sourced by vllm-serve.sh.
-# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
-# Requires: SCRIPT_DIR load_env
+require_defined SCRIPT_DIR load_env || return 1
 
 cmd_pi() {
   load_env

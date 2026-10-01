@@ -1,9 +1,8 @@
 # shellcheck shell=bash
 # Readiness and status module: the vLLM URL, the /v1/models ready check,
 # running-service detection and status rendering. Sourced by vllm-serve.sh.
-# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
-# Requires: ENV_FILE MODELS_FILE load_env compose download_state
-# Requires: registry_load registry_draft registry_context registry_lookup_service
+require_defined ENV_FILE MODELS_FILE load_env compose download_state || return 1
+require_defined registry_load registry_draft registry_context registry_lookup_service || return 1
 
 # host:port vLLM listens on; all variants share it. The shell scripts take it from here.
 VLLM_ADDR="localhost:8000"

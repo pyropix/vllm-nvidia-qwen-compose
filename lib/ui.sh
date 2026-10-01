@@ -1,11 +1,10 @@
 # shellcheck shell=bash
 # UI module: the select and main menus and the usage text.
 # Sourced by vllm-serve.sh.
-# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
-# Requires: ENV_FILE load_env set_env_var
-# Requires: registry_load registry_parse_entry registry_draft registry_context
-# Requires: cmd_status cmd_download cmd_start cmd_logs cmd_ready cmd_stop
-# Requires: cmd_reset_metrics cmd_pi cmd_link cmd_unlink
+require_defined ENV_FILE load_env set_env_var || return 1
+require_defined registry_load registry_parse_entry registry_draft registry_context || return 1
+require_defined cmd_status cmd_download cmd_start cmd_logs cmd_ready cmd_stop || return 1
+require_defined cmd_reset_metrics cmd_pi cmd_link cmd_unlink || return 1
 
 cmd_select() {
   load_env

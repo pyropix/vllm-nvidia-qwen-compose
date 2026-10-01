@@ -1,8 +1,7 @@
 # shellcheck shell=bash
 # Download module: the Download completeness check, what a Model ID needs and the download command.
 # Sourced by vllm-serve.sh.
-# Requires (from vllm-serve.sh or other modules; checked by tests/test_modules.sh):
-# Requires: ENV_FILE load_env check_registry_env registry_draft
+require_defined ENV_FILE load_env check_registry_env registry_draft || return 1
 
 # Succeed when a repo is fully present in the local HF cache (offline check).
 is_downloaded() {
