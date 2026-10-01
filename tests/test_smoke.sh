@@ -103,6 +103,51 @@ test_logs_passes_container_output_through() {
     assert_out_contains "listening on :8000"
 }
 
+# Every compose call gets the checkout and env file, then its own arguments.
+compose_prefix() {
+    echo "docker compose --project-directory ${SANDBOX} --env-file ${SANDBOX}/.env.vllm"
+}
+
+test_start_compose_args() {
+    fake_download nvidia/Qwen-A
+    fake_download z-lab/Draft-A
+    serve start
+    assert_status 0
+    local p
+    p="$(compose_prefix)"
+    assert_log_contains "${p} --profile vllm-nv-qwen-A ps vllm-nv-qwen-A --status running"
+    assert_log_contains "${p} --profile * ps --all"
+    assert_log_contains "${p} --profile vllm-nv-qwen-A pull"
+    assert_log_contains "${p} --profile vllm-nv-qwen-A up --detach --remove-orphans"
+}
+
+test_start_removes_other_variants() {
+    fake_download nvidia/Qwen-A
+    fake_download z-lab/Draft-A
+    echo "vllm-us-qwen-B" >"${STUB_DOCKER_PS}"
+    serve start
+    assert_status 0
+    assert_log_contains "$(compose_prefix) --profile * rm --stop --force vllm-us-qwen-B"
+}
+
+test_stop_compose_args() {
+    serve stop
+    assert_status 0
+    assert_log_contains "$(compose_prefix) --profile vllm-nv-qwen-A down --remove-orphans"
+}
+
+test_logs_compose_args() {
+    serve logs
+    assert_status 0
+    assert_log_contains "$(compose_prefix) logs vllm-nv-qwen-A --follow"
+}
+
+test_status_compose_args() {
+    serve status
+    assert_status 0
+    assert_log_contains "$(compose_prefix) --profile * ps --status running --format {{.Service}}"
+}
+
 test_ready_when_vllm_answers() {
     echo '{"data":[{"id":"nvidia/Qwen-A"}]}' >"${STUB_CURL_OUT}"
     run_script ready
