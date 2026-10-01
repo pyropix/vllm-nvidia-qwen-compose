@@ -12,4 +12,6 @@
 
 **Download**: Fetching everything a Model ID needs to be served: its weights plus its Draft model, if it has one. The Draft model is mandatory, not optional. A Download belongs to a Model ID, not a Variant; all Variants of a Model ID share one Download. A Download is complete only when both the Model ID's weights and its Draft model are present; a Service must not start from an incomplete Download. A Draft model shared by several Model IDs is fetched once and serves all of them.
 
-**Model registry**: The single list of selectable Model IDs, with each one's Variants and optional Draft model. It is the only place the Model ID to Draft model pairing is configured; other files only describe it.
+**Context window**: The maximum number of tokens (prompt plus output) a Service accepts for a Model ID, declared once per Model ID in the Model registry as `context`. All Variants of a Model ID share it. vLLM's `--max-model-len` and the pi provider's `contextWindow` both take their value from it; neither holds a copy.
+
+**Model registry**: The single list of selectable Model IDs, with each one's Context window, Variants and optional Draft model. It is the only place the Model ID to Draft model pairing and the Context window are configured; other files only describe or read them.

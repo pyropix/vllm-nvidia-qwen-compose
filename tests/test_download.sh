@@ -54,7 +54,7 @@ test_status_download_dangling_symlink() {
 }
 
 test_status_download_without_draft_model() {
-    select_model unsloth/Qwen-B
+    select_model unsloth/Qwen-B "" 1048576
     fake_download unsloth/Qwen-B
     serve status
     assert_out_contains "Download   complete"
@@ -63,14 +63,14 @@ test_status_download_without_draft_model() {
 test_shared_draft_model_serves_both_model_ids() {
     fake_complete_download
     fake_download unsloth/Qwen-C
-    select_model unsloth/Qwen-C z-lab/Draft-A
+    select_model unsloth/Qwen-C z-lab/Draft-A 65536
     serve status
     assert_out_contains "Download   complete"
 }
 
 test_download_skips_draft_model_already_fetched() {
     fake_download z-lab/Draft-A
-    select_model unsloth/Qwen-C z-lab/Draft-A
+    select_model unsloth/Qwen-C z-lab/Draft-A 65536
     serve download
     assert_status 0
     assert_log_contains "hf download unsloth/Qwen-C"

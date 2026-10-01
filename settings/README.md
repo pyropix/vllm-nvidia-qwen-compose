@@ -20,6 +20,6 @@ If `~/.pi` already exists, merge the files by hand instead so you don't overwrit
 ## Files
 
 - `settings.json` sets the default provider (`vllm-qwen`) and default model.
-- `models.json` defines the `vllm-qwen` provider (OpenAI-compatible API at `http://localhost:8000/v1`) and the Qwen models it serves.
+- `models.json` defines the `vllm-qwen` provider (OpenAI-compatible API at `http://localhost:8000/v1`) and the Qwen models it serves. It deliberately omits `contextWindow`: the context window lives in the repo's `models.json` and is supplied by the project extension in `.pi/extensions/pi-vllm-qwen`. If you use this file without that extension, add a `contextWindow` per model from the registry's `context`.
 
 Adjust `baseUrl` and the model list to match your setup. For example, use `http://host.docker.internal:8000/v1` when Pi runs inside a container.

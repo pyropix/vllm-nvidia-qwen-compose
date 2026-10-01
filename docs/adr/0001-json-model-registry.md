@@ -11,5 +11,6 @@ The model registry is `models.json` (replacing `models.conf`), parsed with `jq` 
 ## Consequences
 
 - JSON has no comments, so the service-naming convention is documented in `docs/profiles.md`.
+- The registry also carries each Model ID's `context` window; `select` writes it as `MAX_MODEL_LEN` and compose interpolates it into `--max-model-len`, while the pi extension reads it directly from `models.json`. `start` and `download` fail with the same "run `select` again" message when `MAX_MODEL_LEN` is stale.
 - An old `.env.vllm` without `DRAFT_MODEL_ID` makes `start` and `download` fail early with a "run `select` again" message when the registry declares a Draft model.
 - Service names are still derived by convention from the Model ID and Variant.

@@ -46,6 +46,31 @@ test_select_writes_env() {
     grep -q '^DRAFT_MODEL_ID=z-lab/Draft-A$' "${SANDBOX}/.env.vllm" || fail "DRAFT_MODEL_ID not written"
 }
 
+test_select_writes_context_window() {
+    serve_stdin "3" select
+    assert_status 0
+    grep -q '^MAX_MODEL_LEN=1048576$' "${SANDBOX}/.env.vllm" || fail "MAX_MODEL_LEN not written"
+}
+
+test_start_refuses_stale_context_window() {
+    sed -i '/^MAX_MODEL_LEN=/d' "${SANDBOX}/.env.vllm"
+    fake_download nvidia/Qwen-A
+    fake_download z-lab/Draft-A
+    serve start
+    assert_status 1
+    assert_out_contains "MAX_MODEL_LEN"
+    assert_out_contains "select again"
+    assert_log_lacks "docker compose"
+}
+
+test_start_refuses_registry_without_context_window() {
+    jq 'map(del(.context))' "${SANDBOX}/models.json" >"${SANDBOX}/m.json"
+    mv "${SANDBOX}/m.json" "${SANDBOX}/models.json"
+    serve start
+    assert_status 1
+    assert_out_contains "no context window for nvidia/Qwen-A"
+}
+
 test_download_fetches_model_and_draft() {
     serve download
     assert_status 0
