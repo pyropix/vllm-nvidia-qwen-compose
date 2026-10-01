@@ -46,6 +46,16 @@ test_select_writes_env() {
     grep -q '^DRAFT_MODEL_ID=z-lab/Draft-A$' "${SANDBOX}/.env.vllm" || fail "DRAFT_MODEL_ID not written"
 }
 
+test_select_without_variant_clears_variant_and_draft() {
+    # Start from a variant with a Draft model so clearing is observable.
+    sed -i -e 's|^MODEL_VARIANT=.*|MODEL_VARIANT=fast|' "${SANDBOX}/.env.vllm"
+    serve_stdin "3" select
+    assert_status 0
+    grep -q '^MODEL_ID=unsloth/Qwen-B$' "${SANDBOX}/.env.vllm" || fail "MODEL_ID not written"
+    grep -q '^MODEL_VARIANT=$' "${SANDBOX}/.env.vllm" || fail "MODEL_VARIANT not cleared"
+    grep -q '^DRAFT_MODEL_ID=$' "${SANDBOX}/.env.vllm" || fail "DRAFT_MODEL_ID not cleared"
+}
+
 test_download_fetches_model_and_draft() {
     run_script download
     assert_status 0
@@ -83,6 +93,14 @@ test_logs_follows_service() {
     run_script logs
     assert_status 0
     assert_log_contains "logs ${SVC_A} --follow"
+}
+
+test_logs_passes_container_output_through() {
+    printf 'engine started\nlistening on :8000\n' >"${STUB_DOCKER_LOGS}"
+    serve logs
+    assert_status 0
+    assert_out_contains "engine started"
+    assert_out_contains "listening on :8000"
 }
 
 test_ready_when_vllm_answers() {
