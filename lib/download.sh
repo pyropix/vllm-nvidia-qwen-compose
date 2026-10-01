@@ -59,9 +59,9 @@ is_downloaded() {
   # At least one safetensors file, a snapshot symlink resolved to a blob like the
   # required files above. Every Model ID and Draft model in the registry ships
   # safetensors, so other weight formats are not supported.
-  local weights
-  for weights in "${snapshot}"/*.safetensors; do
-    is_cached_file "${weights}" "${blobs}" && return 0
+  local weight_file
+  for weight_file in "${snapshot}"/*.safetensors; do
+    is_cached_file "${weight_file}" "${blobs}" && return 0
   done
   return 1
 }
