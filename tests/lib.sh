@@ -106,16 +106,28 @@ fake_repo_dir() {
 
 # Run vllm-serve.sh in the sandbox; sets OUT (stdout+stderr) and STATUS.
 # Stdin is empty unless the first arguments are `--stdin TEXT`.
+# run_script [--stdin INPUT] [--timeout SECS] ARGS...: run the sandbox script,
+# setting OUT and STATUS. --timeout closes stdin after INPUT (no trailing
+# newline) and kills the script after SECS, so an end-of-input loop fails the
+# test instead of hanging the suite.
 run_script() {
-  local input=""
-  if [[ "${1:-}" == "--stdin" ]]; then
-    input="$2"
-    shift 2
-  fi
+  local input="" secs=""
+  while (( $# )); do
+    case "$1" in
+      --stdin) input="$2"; shift 2 ;;
+      --timeout) secs="$2"; shift 2 ;;
+      *) break ;;
+    esac
+  done
   set +e
-  OUT="$(cd "${SANDBOX}" && ./vllm-serve.sh "$@" 2>&1 <<<"${input}")"
+  if [[ -n "${secs}" ]]; then
+    OUT="$(cd "${SANDBOX}" && printf '%s' "${input}" | timeout "${secs}" ./vllm-serve.sh "$@" 2>&1)"
+  else
+    OUT="$(cd "${SANDBOX}" && ./vllm-serve.sh "$@" 2>&1 <<<"${input}")"
+  fi
   STATUS=$?
   set -e
+  [[ -z "${secs}" || "${STATUS}" != 124 ]] || fail "timed out: loops on end of input. Output: ${OUT: -500}"
 }
 
 stub_log() { cat "${STUB_LOG}"; }

@@ -3,18 +3,6 @@
 # shellcheck source=tests/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-# Run the script with stdin closed after INPUT ($1), killed after 10s so an
-# end-of-input loop fails the test instead of hanging the suite.
-run_script_eof() {
-  local input="$1"
-  shift
-  set +e
-  OUT="$(cd "${SANDBOX}" && printf '%s' "${input}" | timeout 10 ./vllm-serve.sh "$@" 2>&1)"
-  STATUS=$?
-  set -e
-  [[ "${STATUS}" != 124 ]] || fail "timed out: loops on end of input. Output: ${OUT: -500}"
-}
-
 assert_env() {
   grep -qx "$1" "${SANDBOX}/.env.vllm" || fail ".env.vllm lacks '$1'. Env: $(cat "${SANDBOX}/.env.vllm")"
 }
@@ -57,7 +45,7 @@ test_select_eof_fails_and_keeps_env() {
   select_model nvidia/Qwen-A
   local before
   before="$(cat "${SANDBOX}/.env.vllm")"
-  run_script_eof "" select
+  run_script --timeout 10 select
   [[ "${STATUS}" != 0 ]] || fail "expected non-zero exit on end of input. Output: ${OUT}"
   assert_out_contains "No model selected"
   [[ "${OUT}" != *"unbound variable"* ]] || fail "crashed on unbound variable. Output: ${OUT}"
@@ -65,18 +53,18 @@ test_select_eof_fails_and_keeps_env() {
 }
 
 test_menu_eof_exits_zero() {
-  run_script_eof ""
+  run_script --timeout 10
   assert_status 0
 }
 
 test_menu_eof_after_choice_exits_zero() {
-  run_script_eof $'99\n'
+  run_script --stdin $'99\n' --timeout 10
   assert_status 0
   assert_out_contains "Invalid selection."
 }
 
 test_menu_eof_in_select_model_exits_zero() {
-  run_script_eof $'2\n'
+  run_script --stdin $'2\n' --timeout 10
   assert_status 0
   assert_out_contains "No model selected"
 }
