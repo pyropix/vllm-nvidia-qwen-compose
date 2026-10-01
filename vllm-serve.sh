@@ -296,11 +296,14 @@ cmd_download() {
         return 0
     fi
     hf auth login --token "${HF_TOKEN}"
+    local status=0
     while IFS= read -r repo; do
-        hf download "${repo}"
+        hf download "${repo}" || { status=$?; break; }
     done <<<"${missing}"
+    # Log out even when a download failed, so the token is not left behind.
     unset HF_TOKEN
     hf auth logout
+    return "${status}"
 }
 
 cmd_start() {

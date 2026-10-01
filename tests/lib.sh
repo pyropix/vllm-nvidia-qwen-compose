@@ -27,6 +27,7 @@ sandbox_new() {
     export STUB_DOCKER_LOGS="${SANDBOX}/docker-logs"
     export STUB_CURL_OUT="${SANDBOX}/curl-out"
     export STUB_CURL_FAIL=""
+    export STUB_HF_FAIL=""
     mkdir -p "${HOME}/.local"
     : >"${STUB_LOG}"
     : >"${STUB_DOCKER_PS}"
