@@ -96,12 +96,14 @@ cmd_status() {
 
 # Check whether vLLM answers GET /v1/models; with --wait, poll until it does.
 cmd_ready() {
-  local wait="" response
+  local wait="" response ids
   [[ "${1:-}" == "--wait" ]] && wait=1
   while true; do
     if response="$(query_models)"; then
+      # Capture first: piping into sed would hide a jq failure.
+      ids="$(served_model_ids <<<"${response}")" || return 1
       echo "vLLM is ready. Models:"
-      served_model_ids <<<"${response}" | sed 's/^/  /'
+      sed 's/^/  /' <<<"${ids}"
       return 0
     fi
     if [[ -z "${wait}" ]]; then

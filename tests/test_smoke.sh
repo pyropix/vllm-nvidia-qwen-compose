@@ -218,7 +218,7 @@ test_ready_when_vllm_answers() {
   assert_out_contains "vLLM is ready"
 }
 
-test_ready_fails_when_unreachable() {
+test_ready_fails_when_not_ready() {
   export STUB_CURL_FAIL=1
   run_script ready
   assert_status 1

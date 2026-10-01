@@ -118,27 +118,28 @@ test_cmd_ready_when_not_ready() { assert_cmd_ready_fails_with_curl_exit 22; }
 # curl exits 7 when nothing listens on the port.
 test_cmd_ready_when_unreachable() { assert_cmd_ready_fails_with_curl_exit 7; }
 
-# --wait polls until vLLM answers. sleep is replaced: it logs and, on the
-# second call, lets the stub curl succeed, so the third poll answers.
+# --wait polls until vLLM answers: curl fails twice, then the third poll answers.
 test_cmd_ready_wait_polls_until_ready() {
   use_status
   echo '{"data":[{"id":"nvidia/Qwen-A"}]}' >"${STUB_CURL_OUT}"
-  STUB_CURL_FAIL=1 STUB_CURL_EXIT=7
-  export STUB_CURL_FAIL STUB_CURL_EXIT
-  local sleeps="${SANDBOX}/sleeps"
-  : >"${sleeps}"
-  # shellcheck disable=SC2317  # invoked by cmd_ready
-  sleep() {
-    echo "sleep $*" >>"${sleeps}"
-    (( $(wc -l <"${sleeps}") < 2 )) || STUB_CURL_FAIL=""
-  }
+  STUB_CURL_FAIL_TIMES=2 STUB_CURL_EXIT=7
+  export STUB_CURL_FAIL_TIMES STUB_CURL_EXIT
   local out status=0
   out="$(cmd_ready --wait 2>&1)" || status=$?
   [[ "${status}" == 0 ]] || fail "exit ${status}"
   [[ "$(grep -c '^curl ' "${STUB_LOG}")" == 3 ]] || fail "polls: $(stub_log)"
-  [[ "$(cat "${sleeps}")" == $'sleep 5\nsleep 5' ]] || fail "sleeps: $(cat "${sleeps}")"
+  [[ "$(grep '^sleep ' "${STUB_LOG}")" == $'sleep 5\nsleep 5' ]] || fail "sleeps: $(stub_log)"
   [[ "$(grep -c '^Waiting for vLLM' <<<"${out}")" == 2 ]] || fail "output: ${out}"
   [[ "${out}" == *$'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "output: ${out}"
+}
+
+# A malformed /v1/models response is an error, not a ready vLLM.
+test_cmd_ready_fails_on_malformed_response() {
+  use_status
+  echo 'not json' >"${STUB_CURL_OUT}"
+  local status=0
+  cmd_ready >/dev/null 2>&1 || status=$?
+  [[ "${status}" != 0 ]] || fail "exit 0 on malformed response"
 }
 
 run_tests
