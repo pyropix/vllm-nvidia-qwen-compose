@@ -12,4 +12,6 @@
 
 **Download**: Fetching everything a Model ID needs to be served: its weights plus its Draft model, if it has one. The Draft model is mandatory, not optional. A Download belongs to a Model ID, not a Variant; all Variants of a Model ID share one Download. A Download is complete only when both the Model ID's weights and its Draft model are present; a Service must not start from an incomplete Download. A Draft model shared by several Model IDs is fetched once and serves all of them.
 
+**Run**: One continuous stretch of serving a single Service, from its start to its stop. A Run is identified by its Model ID, Variant (if any) and start time. Runs are the unit of performance comparison: metrics are recorded per Run, so one Run can be compared against another (different Model IDs, different Variants of one Model ID, or the same Service started at different times). Metric history outlives a Run; it is discarded only by an explicit reset.
+
 **Model registry**: The single list of selectable Model IDs, with each one's Variants and optional Draft model. It is the only place the Model ID to Draft model pairing is configured; other files only describe it.
