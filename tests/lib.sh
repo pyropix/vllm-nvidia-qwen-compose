@@ -136,6 +136,15 @@ source_modules() {
   done < <(sed -n 's|^source "${SCRIPT_DIR}/\(lib/[a-z_]*\.sh\)"$|\1|p' "${dir}/vllm-serve.sh")
 }
 
+# Print VLLM_ADDR as the repo's lib/status.sh defines it (the single source,
+# ADR 0003). Sources in a subshell, so the caller's shell stays unchanged.
+vllm_addr() {
+  (
+    source_modules "${REPO_DIR}"
+    echo "${VLLM_ADDR}"
+  )
+}
+
 # Record a failure. Tests run in a subshell (see run_tests), so the flag is a file.
 fail() {
   echo "    FAIL: $*" >&2

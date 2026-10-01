@@ -10,10 +10,11 @@ use_status() {
 
 # ADR 0003: every copy of the vLLM address matches VLLM_ADDR. Lists all that don't.
 test_vllm_addr_copies_match() {
-  source_modules "${REPO_DIR}"
-  local url="http://${VLLM_ADDR}/v1" port="${VLLM_ADDR##*:}" compose="${REPO_DIR}/docker-compose.yml"
+  local addr url port compose="${REPO_DIR}/docker-compose.yml"
+  addr="$(vllm_addr)"
+  url="http://${addr}/v1" port="${addr##*:}"
   local bad=() hits ts base ports p
-  hits="$(grep -rlF "${VLLM_ADDR}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
+  hits="$(grep -rlF "${addr}" "${REPO_DIR}/vllm-serve.sh" "${REPO_DIR}/lib")"
   [[ "${hits}" == "${REPO_DIR}/lib/status.sh" ]] || bad+=("shell literal in: ${hits}")
   ts="$(sed -nE 's/^const BASE_URL = "(.*)";$/\1/p' "${REPO_DIR}/.pi/extensions/pi-vllm-qwen/index.ts")"
   [[ "${ts}" == "${url}" ]] ||
@@ -25,7 +26,7 @@ test_vllm_addr_copies_match() {
   for p in ${ports}; do
     [[ "${p}" == "${port}" ]] || bad+=("docker-compose.yml --port ${p}")
   done
-  ((${#bad[@]} == 0)) || fail "disagree with VLLM_ADDR=${VLLM_ADDR}: ${bad[*]}"
+  ((${#bad[@]} == 0)) || fail "disagree with VLLM_ADDR=${addr}: ${bad[*]}"
 }
 
 test_query_models_asks_the_models_url() {
@@ -105,10 +106,13 @@ assert_cmd_ready_fails_with_curl_exit() {
   use_status
   STUB_CURL_FAIL=1 STUB_CURL_EXIT="$1"
   export STUB_CURL_FAIL STUB_CURL_EXIT
-  local out status=0
-  out="$(cmd_ready 2>&1)" || status=$?
+  local out err status=0
+  err="${SANDBOX}/ready-stderr"
+  out="$(cmd_ready 2>"${err}")" || status=$?
   [[ "${status}" == 1 ]] || fail "exit ${status}"
-  [[ "${out}" == "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." ]] || fail "output: ${out}"
+  [[ -z "${out}" ]] || fail "stdout: ${out}"
+  [[ "$(cat "${err}")" == "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." ]] ||
+    fail "stderr: $(cat "${err}")"
 }
 
 # curl exits 22 when vLLM answers with an HTTP error (not ready yet).
@@ -123,13 +127,15 @@ test_cmd_ready_wait_polls_until_ready() {
   echo '{"data":[{"id":"nvidia/Qwen-A"}]}' >"${STUB_CURL_OUT}"
   STUB_CURL_FAIL_TIMES=2 STUB_CURL_EXIT=7
   export STUB_CURL_FAIL_TIMES STUB_CURL_EXIT
-  local out status=0
-  out="$(cmd_ready --wait 2>&1)" || status=$?
+  local out err status=0
+  err="${SANDBOX}/ready-stderr"
+  out="$(cmd_ready --wait 2>"${err}")" || status=$?
   [[ "${status}" == 0 ]] || fail "exit ${status}"
   [[ "$(grep -c '^curl ' "${STUB_LOG}")" == 3 ]] || fail "polls: $(stub_log)"
   [[ "$(grep '^sleep ' "${STUB_LOG}")" == $'sleep 5\nsleep 5' ]] || fail "sleeps: $(stub_log)"
-  [[ "$(grep -c '^Waiting for vLLM' <<<"${out}")" == 2 ]] || fail "output: ${out}"
-  [[ "${out}" == *$'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "output: ${out}"
+  # Progress goes to stderr; stdout holds only the result.
+  [[ "$(grep -c '^Waiting for vLLM' "${err}")" == 2 ]] || fail "stderr: $(cat "${err}")"
+  [[ "${out}" == $'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "stdout: ${out}"
 }
 
 # A malformed /v1/models response is an error, not a ready vLLM.

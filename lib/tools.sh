@@ -10,9 +10,14 @@ cmd_pi() {
   pi --provider vllm-qwen --model "${MODEL_ID}"
 }
 
+# The vllm-serve symlink path, shared by cmd_link and cmd_unlink. A function,
+# not a constant, so it follows HOME at call time.
+link_path() { echo "${HOME}/.local/bin/vllm-serve"; }
+
 cmd_link() {
-  local bin_dir="${HOME}/.local/bin"
-  local link_path="${bin_dir}/vllm-serve"
+  local link_path bin_dir
+  link_path="$(link_path)"
+  bin_dir="$(dirname "${link_path}")"
   mkdir -p "${bin_dir}"
   ln -sf "${SCRIPT_DIR}/vllm-serve.sh" "${link_path}"
   echo "Linked ${link_path} -> ${SCRIPT_DIR}/vllm-serve.sh"
@@ -23,7 +28,8 @@ cmd_link() {
 }
 
 cmd_unlink() {
-  local link_path="${HOME}/.local/bin/vllm-serve"
+  local link_path
+  link_path="$(link_path)"
   if [[ -L "${link_path}" ]]; then
     rm -f "${link_path}"
     echo "Removed symlink ${link_path}"
