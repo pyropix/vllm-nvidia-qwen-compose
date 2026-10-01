@@ -31,6 +31,31 @@ test_status_download_incomplete_blob() {
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
+# hf 2.0.0 names a partial blob <blob>.<uuid8>.incomplete. One for a linked blob
+# counts even when it is older than refs/main.
+test_status_download_linked_uuid_incomplete_blob() {
+  fake_complete_download
+  touch -d '2 days ago' "$(fake_repo_dir nvidia/Qwen-A)/blobs/w.1a2b3c4d.incomplete"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_unlinked_uuid_incomplete_blob() {
+  fake_complete_download
+  touch -d '1 hour ago' "$(fake_repo_dir nvidia/Qwen-A)/refs/main"
+  touch "$(fake_repo_dir nvidia/Qwen-A)/blobs/cfg.1a2b3c4d.incomplete"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_ignores_stale_unlinked_uuid_incomplete_blob() {
+  fake_complete_download
+  touch -d '1 hour ago' "$(fake_repo_dir nvidia/Qwen-A)/refs/main"
+  touch -d '2 days ago' "$(fake_repo_dir nvidia/Qwen-A)/blobs/cfg.1a2b3c4d.incomplete"
+  run_script status
+  assert_out_contains "Download   complete"
+}
+
 test_status_download_ignores_stale_incomplete_blob() {
   fake_complete_download
   touch -d '2 days ago' "$(fake_repo_dir nvidia/Qwen-A)/blobs/stale.incomplete"
