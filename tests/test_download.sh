@@ -347,7 +347,8 @@ test_status_download_index_weight_map_not_object_incomplete() { assert_malformed
 test_status_download_index_non_string_shard_incomplete() { assert_malformed_index_incomplete '{"weight_map":{"a":1}}'; }
 
 # A listed shard counts only as a snapshot symlink to a blob of its repo (#43):
-# with model.safetensors listed in the index, put <target> in its place.
+# with model.safetensors listed in the index, replace it with a regular file
+# (regular-file) or a symlink to a file outside the blobs (outside-link).
 assert_listed_shard_incomplete() {
   fake_complete_download
   local snapshot
@@ -358,6 +359,7 @@ assert_listed_shard_incomplete() {
   case "$1" in
     regular-file) cp "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
     outside-link) ln -s "${SANDBOX}/model.safetensors" "${snapshot}/model.safetensors" ;;
+    *) fail "unknown mode: $1" ;;
   esac
   run_script status
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
