@@ -98,9 +98,10 @@ serve_stdin() {
 
 stub_log() { cat "${STUB_LOG}"; }
 
+# Record a failure. Tests run in a subshell (see run_tests), so the flag is a file.
 fail() {
     echo "    FAIL: $*" >&2
-    TEST_FAILED=1
+    touch "${SANDBOX}/.test-failed"
 }
 
 assert_status() {
@@ -121,12 +122,19 @@ assert_log_lacks() {
 
 # Run every function whose name starts with test_ in its own sandbox.
 run_tests() {
-    local fn
+    local fn status
     for fn in $(declare -F | awk '{print $3}' | grep '^test_'); do
         TESTS=$((TESTS + 1))
         TEST_FAILED=0
         sandbox_new
-        "${fn}" || TEST_FAILED=1
+        # Run in a subshell with errexit on, so a failing bare command fails the
+        # test. Not in a ||/if context: that would silently disable errexit.
+        set +e
+        ( set -e; "${fn}" )
+        status=$?
+        (( status == 0 )) || TEST_FAILED=1
+        set -e
+        [[ ! -e "${SANDBOX}/.test-failed" ]] || TEST_FAILED=1
         sandbox_free
         if (( TEST_FAILED )); then
             FAILURES=$((FAILURES + 1))
