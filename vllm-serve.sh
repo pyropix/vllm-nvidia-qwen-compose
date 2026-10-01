@@ -45,6 +45,38 @@ check_draft() {
     fi
 }
 
+# Succeed when a repo is fully present in the local HF cache (offline check).
+is_downloaded() {
+    local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard
+    [[ -f "${repo_dir}/refs/main" ]] || return 1
+    rev="$(<"${repo_dir}/refs/main")"
+    snapshot="${repo_dir}/snapshots/${rev}"
+    [[ -d "${snapshot}" ]] || return 1
+    # Interrupted downloads leave *.incomplete blobs behind.
+    compgen -G "${repo_dir}/blobs/*.incomplete" >/dev/null && return 1
+    # Every symlinked file must resolve to a blob.
+    [[ -z "$(find -L "${snapshot}" -type l)" ]] || return 1
+    # Every shard listed in the weight index must be present.
+    if [[ -f "${snapshot}/model.safetensors.index.json" ]]; then
+        while IFS= read -r shard; do
+            [[ -f "${snapshot}/${shard}" ]] || return 1
+        done < <(jq -r '.weight_map[]' "${snapshot}/model.safetensors.index.json" | sort -u)
+    fi
+    compgen -G "${snapshot}/*.safetensors" >/dev/null
+}
+
+# Fail when the Download of the selected Model ID (weights plus Draft model) is incomplete.
+check_downloaded() {
+    local repo
+    for repo in "${MODEL_ID}" ${DRAFT_MODEL_ID:+"${DRAFT_MODEL_ID}"}; do
+        if ! is_downloaded "${repo}"; then
+            echo "Error: ${repo} is not fully downloaded." >&2
+            echo "Run $(basename "$0") download first." >&2
+            exit 1
+        fi
+    done
+}
+
 load_env() {
     if [[ ! -f "${ENV_FILE}" ]]; then
         echo "Error: ${ENV_FILE} not found." >&2
@@ -239,6 +271,7 @@ cmd_download() {
 cmd_start() {
     load_env
     check_draft
+    check_downloaded
     local profile service
     profile="$(get_profile)"
     service="$(get_service)"
