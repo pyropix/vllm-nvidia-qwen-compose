@@ -52,6 +52,17 @@ test_select_eof_fails_and_keeps_env() {
   [[ "$(cat "${SANDBOX}/.env.vllm")" == "${before}" ]] || fail ".env.vllm changed. Env: $(cat "${SANDBOX}/.env.vllm")"
 }
 
+test_select_invalid_then_eof_fails_and_keeps_env() {
+  select_model nvidia/Qwen-A
+  local before
+  before="$(cat "${SANDBOX}/.env.vllm")"
+  run_script --stdin $'99\n' --timeout 10 select
+  [[ "${STATUS}" != 0 ]] || fail "expected non-zero exit on end of input. Output: ${OUT}"
+  assert_out_contains "Invalid selection"
+  assert_out_contains "No model selected"
+  [[ "$(cat "${SANDBOX}/.env.vllm")" == "${before}" ]] || fail ".env.vllm changed. Env: $(cat "${SANDBOX}/.env.vllm")"
+}
+
 test_menu_eof_exits_zero() {
   run_script --timeout 10
   assert_status 0
