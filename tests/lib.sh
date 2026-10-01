@@ -12,6 +12,7 @@ STUBS_DIR="${REPO_DIR}/tests/stubs"
 SVC_A="vllm-nv-qwen-A"
 SVC_A_FAST="${SVC_A}-fast"
 SVC_B="vllm-us-qwen-B"
+SVC_C="vllm-us-qwen-C"
 
 ORIGINAL_PATH="${PATH}"
 FAILURES=0
@@ -42,7 +43,7 @@ JSON
     {
         echo "services:"
         local svc
-        for svc in "${SVC_A}" "${SVC_A_FAST}" "${SVC_B}"; do
+        for svc in "${SVC_A}" "${SVC_A_FAST}" "${SVC_B}" "${SVC_C}"; do
             printf '  %s:\n    profiles: [%s]\n' "${svc}" "${svc}"
         done
     } >"${SANDBOX}/docker-compose.yml"
