@@ -258,6 +258,12 @@ cmd_status() {
     printf "${fmt}" "Context" "${context:--}"
     printf "${fmt}" "Download" "${download}"
     echo ""
+    echo "Downloads (all Model IDs in ${MODELS_FILE})"
+    local id
+    while IFS= read -r id; do
+        printf "  %s  %s\n" "${id}" "$(download_state "${id}")"
+    done < <(jq -r '.[].id' "${MODELS_FILE}")
+    echo ""
     echo "Running"
     local running=() svc entry model_id variant found
     while IFS= read -r svc; do
