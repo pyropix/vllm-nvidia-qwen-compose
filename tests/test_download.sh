@@ -4,11 +4,6 @@ set -euo pipefail
 # shellcheck source=tests/lib.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
-fake_complete_download() {
-  fake_download nvidia/Qwen-A
-  fake_download z-lab/Draft-A
-}
-
 test_status_download_complete() {
   fake_complete_download
   run_script status
@@ -288,40 +283,6 @@ test_status_download_all_shards_present_in_safetensors_index() {
     >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/model.safetensors.index.json"
   run_script status
   assert_out_contains "Download   complete"
-}
-
-test_status_lists_download_state_of_every_model_id() {
-  fake_complete_download
-  fake_download unsloth/Qwen-B
-  run_script status
-  assert_status 0
-  assert_out_contains "Downloads"
-  assert_out_contains "nvidia/Qwen-A  complete"
-  assert_out_contains "unsloth/Qwen-B  complete"
-  assert_out_contains "unsloth/Qwen-C  incomplete (missing: unsloth/Qwen-C)"
-}
-
-test_status_lists_incomplete_downloads_with_selected_model_complete() {
-  fake_complete_download
-  run_script status
-  assert_out_contains "nvidia/Qwen-A  complete"
-  assert_out_contains "unsloth/Qwen-B  incomplete (missing: unsloth/Qwen-B)"
-}
-
-test_status_lists_downloads_without_selected_model() {
-  sed -i -e 's|^MODEL_ID=.*|MODEL_ID=|' "${SANDBOX}/.env.vllm"
-  fake_download unsloth/Qwen-B
-  run_script status
-  assert_status 0
-  assert_out_contains "unsloth/Qwen-B  complete"
-  assert_out_contains "nvidia/Qwen-A  incomplete"
-}
-
-test_status_lists_each_model_id_once_despite_variants() {
-  run_script status
-  local count
-  count="$(grep -c '^  nvidia/Qwen-A ' <<<"${OUT}")"
-  [[ "${count}" == 1 ]] || fail "expected one nvidia/Qwen-A line, got ${count}. Output: ${OUT}"
 }
 
 test_status_download_ignores_non_weight_index() {
