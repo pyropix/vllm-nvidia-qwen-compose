@@ -133,4 +133,13 @@ test_cmd_ready_wait_polls_until_ready() {
   [[ "${out}" == *$'vLLM is ready. Models:\n  nvidia/Qwen-A' ]] || fail "output: ${out}"
 }
 
+# A malformed /v1/models response is an error, not a ready vLLM.
+test_cmd_ready_fails_on_malformed_response() {
+  use_status
+  echo 'not json' >"${STUB_CURL_OUT}"
+  local status=0
+  cmd_ready >/dev/null 2>&1 || status=$?
+  [[ "${status}" != 0 ]] || fail "exit 0 on malformed response"
+}
+
 run_tests
