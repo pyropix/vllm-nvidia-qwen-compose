@@ -2,7 +2,7 @@
 # Shared helpers for the vllm-serve tests. Sourced by test files.
 # Each test runs in a sandbox: a copy of the script next to a test registry,
 # compose file and .env.vllm, with HOME pointing at a fake HF cache and
-# stub docker/hf/curl/pi first on PATH. Stubs append their argv to $STUB_LOG.
+# stub docker/hf/curl/pi/sleep first on PATH. Stubs append their argv to $STUB_LOG.
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STUBS_DIR="${REPO_DIR}/tests/stubs"
@@ -28,6 +28,8 @@ sandbox_new() {
   export STUB_DOCKER_LOGS="${SANDBOX}/docker-logs"
   export STUB_CURL_OUT="${SANDBOX}/curl-out"
   export STUB_CURL_FAIL=""
+  export STUB_CURL_FAIL_TIMES=""
+  export STUB_CURL_CALLS="${SANDBOX}/curl-calls"
   export STUB_HF_FAIL=""
   mkdir -p "${HOME}/.local"
   : >"${STUB_LOG}"
@@ -62,7 +64,7 @@ ENV
   export PATH="${STUBS_DIR}:${ORIGINAL_PATH}"
   # Never let a missing stub fall through to the real tool.
   local tool
-  for tool in docker hf curl pi; do
+  for tool in docker hf curl pi sleep; do
     [[ "$(command -v "${tool}")" == "${STUBS_DIR}/${tool}" ]] \
       || { echo "Error: ${tool} does not resolve to its stub." >&2; exit 1; }
   done

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Stub sleep: log argv and return at once.
+echo "sleep $*" >>"${STUB_LOG}"
