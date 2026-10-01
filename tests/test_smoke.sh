@@ -30,11 +30,11 @@ test_status_no_container() {
 }
 
 test_status_running_and_ready() {
-    echo "vllm-nv-qwen-A" >"${STUB_DOCKER_PS}"
+    echo "${SVC_A}" >"${STUB_DOCKER_PS}"
     echo '{"data":[{"id":"nvidia/Qwen-A"}]}' >"${STUB_CURL_OUT}"
     serve status
     assert_status 0
-    assert_out_contains "vllm-nv-qwen-A"
+    assert_out_contains "${SVC_A}"
     assert_out_contains "yes (nvidia/Qwen-A)"
 }
 
@@ -75,14 +75,14 @@ test_start_brings_up_service() {
     fake_download z-lab/Draft-A
     serve start
     assert_status 0
-    assert_log_contains "--profile vllm-nv-qwen-A pull"
-    assert_log_contains "--profile vllm-nv-qwen-A up --detach"
+    assert_log_contains "--profile ${SVC_A} pull"
+    assert_log_contains "--profile ${SVC_A} up --detach"
 }
 
 test_logs_follows_service() {
     serve logs
     assert_status 0
-    assert_log_contains "logs vllm-nv-qwen-A --follow"
+    assert_log_contains "logs ${SVC_A} --follow"
 }
 
 test_ready_when_vllm_answers() {
@@ -102,7 +102,7 @@ test_ready_fails_when_unreachable() {
 test_stop_takes_service_down() {
     serve stop
     assert_status 0
-    assert_log_contains "--profile vllm-nv-qwen-A down --remove-orphans"
+    assert_log_contains "--profile ${SVC_A} down --remove-orphans"
 }
 
 test_pi_launches_with_model() {

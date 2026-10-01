@@ -7,6 +7,12 @@
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STUBS_DIR="${REPO_DIR}/tests/stubs"
 
+# Compose service names of the sandbox models.json fixtures (the convention
+# derive_service() implements). Tests refer to these, never to literals.
+SVC_A="vllm-nv-qwen-A"
+SVC_A_FAST="${SVC_A}-fast"
+SVC_B="vllm-us-qwen-B"
+
 ORIGINAL_PATH="${PATH}"
 FAILURES=0
 TESTS=0
@@ -31,15 +37,13 @@ sandbox_new() {
   {"id": "unsloth/Qwen-C", "draft": "z-lab/Draft-A"}
 ]
 JSON
-    cat >"${SANDBOX}/docker-compose.yml" <<'YAML'
-services:
-  vllm-nv-qwen-A:
-    profiles: [vllm-nv-qwen-A]
-  vllm-nv-qwen-A-fast:
-    profiles: [vllm-nv-qwen-A-fast]
-  vllm-us-qwen-B:
-    profiles: [vllm-us-qwen-B]
-YAML
+    {
+        echo "services:"
+        local svc
+        for svc in "${SVC_A}" "${SVC_A_FAST}" "${SVC_B}"; do
+            printf '  %s:\n    profiles: [%s]\n' "${svc}" "${svc}"
+        done
+    } >"${SANDBOX}/docker-compose.yml"
     cat >"${SANDBOX}/.env.vllm" <<'ENV'
 HF_TOKEN=test-token
 MODEL_ID=nvidia/Qwen-A
