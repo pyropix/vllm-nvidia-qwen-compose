@@ -76,6 +76,13 @@ is_downloaded() {
     while IFS= read -r link; do
         [[ ! -e "${repo_dir}/blobs/$(basename "$(readlink "${link}")").incomplete" ]] || return 1
     done < <(find "${snapshot}" -type l)
+    # A file with no snapshot symlink yet (config.json, tokenizer) leaves an
+    # <blob>.incomplete no link points to. hf writes refs/main before it fetches
+    # files, so one at least as new as refs/main belongs to this revision; an
+    # older one is a stale leftover of another revision and is ignored.
+    while IFS= read -r link; do
+        [[ "${repo_dir}/refs/main" -nt "${link}" ]] || return 1
+    done < <(find "${repo_dir}/blobs" -name '*.incomplete' 2>/dev/null)
     # Every shard listed in any weight index (*.index.json) must be present.
     for index in "${snapshot}"/*.index.json; do
         [[ -f "${index}" ]] || continue
