@@ -53,8 +53,9 @@ HF_TOKEN=test-token
 MODEL_ID=nvidia/Qwen-A
 MODEL_VARIANT=
 DRAFT_MODEL_ID=z-lab/Draft-A
-MAX_MODEL_LEN=262144
+MAX_MODEL_LEN=
 ENV
+    select_model nvidia/Qwen-A
     export PATH="${STUBS_DIR}:${ORIGINAL_PATH}"
     # Never let a missing stub fall through to the real tool.
     local tool
@@ -84,7 +85,7 @@ select_model() {
     draft="$(jq -r --arg id "$1" '.[] | select(.id == $id) | .draft // empty' "${SANDBOX}/models.json")"
     context="$(jq -r --arg id "$1" '.[] | select(.id == $id) | .context // empty' "${SANDBOX}/models.json")"
     sed -i -e "s|^MODEL_ID=.*|MODEL_ID=$1|" -e "s|^DRAFT_MODEL_ID=.*|DRAFT_MODEL_ID=${draft}|" \
-        -e "s|^MAX_MODEL_LEN=.*|MAX_MODEL_LEN=${context:-262144}|" "${SANDBOX}/.env.vllm"
+        -e "s|^MAX_MODEL_LEN=.*|MAX_MODEL_LEN=${context}|" "${SANDBOX}/.env.vllm"
 }
 
 # Path of a repo's directory in the fake HF cache.

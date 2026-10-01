@@ -59,7 +59,9 @@ test_select_without_variant_clears_variant_and_draft() {
 test_select_writes_context_window() {
     run_script --stdin "3" select
     assert_status 0
-    grep -q '^MAX_MODEL_LEN=1048576$' "${SANDBOX}/.env.vllm" || fail "MAX_MODEL_LEN not written"
+    local expected
+    expected="$(jq -r '.[] | select(.id == "unsloth/Qwen-B") | .context' "${SANDBOX}/models.json")"
+    grep -qx "MAX_MODEL_LEN=${expected}" "${SANDBOX}/.env.vllm" || fail "MAX_MODEL_LEN not written"
 }
 
 test_start_refuses_stale_context_window() {

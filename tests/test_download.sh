@@ -61,7 +61,7 @@ test_status_download_dangling_symlink() {
 }
 
 test_status_download_without_draft_model() {
-    select_model unsloth/Qwen-B "" 1048576
+    select_model unsloth/Qwen-B
     fake_download unsloth/Qwen-B
     run_script status
     assert_out_contains "Download   complete"

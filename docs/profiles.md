@@ -12,9 +12,9 @@ The Qwen3.6 services additionally use the mounted custom chat template (`--chat-
 
 - **35B-A3B** uses `--kv-cache-dtype fp8 --attention-backend flashinfer --tool-call-parser qwen3_xml --moe-backend marlin --async-scheduling`.
 - **27B** uses `--moe-backend marlin --kv-cache-dtype auto --tool-call-parser qwen3_coder --reasoning-parser qwen3`.
-- **Qwen3.8-27B** (nvidia) uses DFlash2 speculative decoding (`--speculative-config` with the draft model `z-lab/Qwen3.8-27B-DFlash2`, 8 tokens, draft TP 1), `--kv-cache-dtype fp8 --async-scheduling --tool-call-parser qwen3_xml --reasoning-parser qwen3`, and a 262144-token context. Based on the `qwen3.8-27b-nvfp4-dflash2` recipe from spark-vllm-docker (solo, TP=1).
+- **Qwen3.8-27B** (nvidia) uses DFlash2 speculative decoding (`--speculative-config` with the draft model `z-lab/Qwen3.8-27B-DFlash2`, 8 tokens, draft TP 1), `--kv-cache-dtype fp8 --async-scheduling --tool-call-parser qwen3_xml --reasoning-parser qwen3` (context window from the registry). Based on the `qwen3.8-27b-nvfp4-dflash2` recipe from spark-vllm-docker (solo, TP=1).
 - **Qwen3.8-27B** (nvidia, `instanttensor` variant) is the same configuration as above but runs on `eugr/spark-vllm:latest` (the spark-vllm-docker image, which ships `instanttensor` and a UMA memory-accounting patch) with `--load-format instanttensor`, and its command starts with `vllm serve` because that image has no `vllm serve` entrypoint. Select it via the `instanttensor` entry under `nvidia/Qwen3.8-27B-NVFP4` in `models.json`.
-- **Qwen3.8-27B** (unsloth) uses `--tool-call-parser qwen3_coder --reasoning-parser qwen3`, DSpark speculative decoding (`--speculative-config` with the draft model `Doopeworld/Qwen3.8-27B-DSpark-vLLM`, 7 tokens, probabilistic draft sampling), and a 1M-token YaRN context extension (`--max-model-len 1048576` via `--hf-overrides`, `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1`).
+- **Qwen3.8-27B** (unsloth) uses `--tool-call-parser qwen3_coder --reasoning-parser qwen3`, DSpark speculative decoding (`--speculative-config` with the draft model `Doopeworld/Qwen3.8-27B-DSpark-vLLM`, 7 tokens, probabilistic draft sampling), and a YaRN context extension (`--hf-overrides`, the registry `context` as `--max-model-len`, `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1`).
 
 ## Chat template fix
 
