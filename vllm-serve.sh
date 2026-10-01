@@ -305,7 +305,7 @@ cmd_pi() {
     load_env
     # The Model ID contains '/', so name the provider explicitly or pi reads
     # the org (nvidia/unsloth) as the provider.
-    pi --provider vllm --model "${MODEL_ID}"
+    pi --provider vllm-qwen --model "${MODEL_ID}"
 }
 
 cmd_link() {
