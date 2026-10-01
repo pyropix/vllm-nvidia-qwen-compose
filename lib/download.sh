@@ -56,9 +56,14 @@ is_downloaded() {
   is_cached_file "${snapshot}/config.json" "${blobs}" || return 1
   [[ "${2:-model}" == draft ]] || is_cached_file "${snapshot}/tokenizer.json" "${blobs}" \
     || is_cached_file "${snapshot}/tokenizer_config.json" "${blobs}" || return 1
-  # At least one safetensors file. Every Model ID and Draft model in the registry
-  # ships safetensors, so other weight formats are not supported.
-  compgen -G "${snapshot}/*.safetensors" >/dev/null
+  # At least one safetensors file, a snapshot symlink resolved to a blob like the
+  # required files above. Every Model ID and Draft model in the registry ships
+  # safetensors, so other weight formats are not supported.
+  local weights
+  for weights in "${snapshot}"/*.safetensors; do
+    is_cached_file "${weights}" "${blobs}" && return 0
+  done
+  return 1
 }
 
 # Download module: what a Model ID needs and whether it is all present.
