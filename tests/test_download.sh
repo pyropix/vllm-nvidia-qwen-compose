@@ -297,7 +297,6 @@ test_status_download_without_weight_files_incomplete() {
   local snapshot
   snapshot="$(fake_repo_dir z-lab/Draft-A)/snapshots/rev1"
   rm "${snapshot}/model.safetensors"
-  echo '{}' >"${snapshot}/config.json"
   run_script status
   assert_out_contains "incomplete (missing: z-lab/Draft-A)"
 }
@@ -331,5 +330,61 @@ test_status_download_index_without_weight_map_incomplete() { assert_malformed_in
 test_status_download_index_empty_weight_map_incomplete() { assert_malformed_index_incomplete '{"weight_map":{}}'; }
 test_status_download_index_weight_map_not_object_incomplete() { assert_malformed_index_incomplete '{"weight_map":["model.safetensors"]}'; }
 test_status_download_index_non_string_shard_incomplete() { assert_malformed_index_incomplete '{"weight_map":{"a":1}}'; }
+
+# Required files: config.json in every repo; a tokenizer in Model ID repos only.
+# See docs/adr/0005-fixed-required-files.md.
+test_status_download_model_id_missing_config_incomplete() {
+  fake_complete_download
+  rm "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/config.json"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_model_id_missing_tokenizer_incomplete() {
+  fake_complete_download
+  rm "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/tokenizer.json"
+  run_script status
+  assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
+}
+
+test_status_download_model_id_tokenizer_config_alone_complete() {
+  fake_complete_download
+  local snapshot
+  snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
+  mv "${snapshot}/tokenizer.json" "${snapshot}/tokenizer_config.json"
+  run_script status
+  assert_out_contains "Download   complete"
+}
+
+test_status_download_model_id_tokenizer_json_alone_complete() {
+  fake_complete_download
+  [[ ! -e "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/tokenizer_config.json" ]] \
+    || fail "fixture ships tokenizer_config.json"
+  run_script status
+  assert_out_contains "Download   complete"
+}
+
+test_status_download_draft_model_without_tokenizer_complete() {
+  fake_complete_download
+  rm "$(fake_repo_dir z-lab/Draft-A)/snapshots/rev1/tokenizer.json"
+  run_script status
+  assert_out_contains "Download   complete"
+}
+
+test_status_download_draft_model_missing_config_incomplete() {
+  fake_complete_download
+  rm "$(fake_repo_dir z-lab/Draft-A)/snapshots/rev1/config.json"
+  run_script status
+  assert_out_contains "incomplete (missing: z-lab/Draft-A)"
+}
+
+test_start_refuses_model_id_missing_config() {
+  fake_complete_download
+  rm "$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/config.json"
+  run_script start
+  assert_status 1
+  assert_out_contains "nvidia/Qwen-A is not fully downloaded"
+  assert_log_lacks "up --detach"
+}
 
 run_tests

@@ -80,7 +80,11 @@ fake_download() {
   mkdir -p "${repo_dir}/refs" "${repo_dir}/snapshots/rev1" "${repo_dir}/blobs"
   echo rev1 >"${repo_dir}/refs/main"
   echo weights >"${repo_dir}/blobs/w"
+  echo '{}' >"${repo_dir}/blobs/config"
+  echo '{}' >"${repo_dir}/blobs/tokenizer"
   ln -s ../../blobs/w "${repo_dir}/snapshots/rev1/model.safetensors"
+  ln -s ../../blobs/config "${repo_dir}/snapshots/rev1/config.json"
+  ln -s ../../blobs/tokenizer "${repo_dir}/snapshots/rev1/tokenizer.json"
 }
 
 # Fully download nvidia/Qwen-A and its Draft model.
