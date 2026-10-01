@@ -108,6 +108,11 @@ fake_repo_dir() {
   echo "${HOME}/.cache/huggingface/hub/models--${1//\//--}"
 }
 
+# Path of a repo's snapshot directory (revision rev1) in the fake HF cache.
+fake_snapshot_dir() {
+  echo "$(fake_repo_dir "$1")/snapshots/rev1"
+}
+
 # Run vllm-serve.sh in the sandbox; sets OUT (stdout+stderr) and STATUS.
 # run_script [--stdin INPUT] [--timeout SECS] ARGS...: run the sandbox script,
 # setting OUT and STATUS. Stdin is exactly INPUT (no newline added; empty
