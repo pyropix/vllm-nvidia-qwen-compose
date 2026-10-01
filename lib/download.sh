@@ -14,8 +14,12 @@ is_downloaded() {
   [[ -z "$(find -L "${snapshot}" -type l)" ]] || return 1
   # A partial blob is <blob>.<uuid8>.incomplete (hf 2.0.0) or <blob>.incomplete
   # (older hf). One for a blob this revision links to always counts.
+  local blob
   while IFS= read -r link; do
-    ! compgen -G "${repo_dir}/blobs/$(basename "$(readlink "${link}")")*.incomplete" >/dev/null || return 1
+    blob="$(readlink "${link}")"
+    blob="${repo_dir}/blobs/${blob##*/}"
+    [[ ! -e "${blob}.incomplete" ]] || return 1
+    ! compgen -G "${blob}.????????.incomplete" >/dev/null || return 1
   done < <(find "${snapshot}" -type l)
   # A file with no snapshot symlink yet (config.json, tokenizer) leaves a partial
   # blob no link points to. One at least as new as refs/main belongs to this

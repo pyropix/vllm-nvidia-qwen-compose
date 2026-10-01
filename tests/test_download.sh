@@ -40,6 +40,17 @@ test_status_download_linked_uuid_incomplete_blob() {
   assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
+# A partial blob of another blob whose name starts with the linked blob's name
+# is not the linked blob's: it falls under the mtime rule, so a stale one is ignored.
+test_status_download_ignores_stale_incomplete_blob_sharing_linked_prefix() {
+  fake_complete_download
+  touch -d '1 hour ago' "$(fake_repo_dir nvidia/Qwen-A)/refs/main"
+  touch -d '2 days ago' "$(fake_repo_dir nvidia/Qwen-A)/blobs/wx.incomplete" \
+    "$(fake_repo_dir nvidia/Qwen-A)/blobs/wx.1a2b3c4d.incomplete"
+  run_script status
+  assert_out_contains "Download   complete"
+}
+
 test_status_download_unlinked_uuid_incomplete_blob() {
   fake_complete_download
   touch -d '1 hour ago' "$(fake_repo_dir nvidia/Qwen-A)/refs/main"
