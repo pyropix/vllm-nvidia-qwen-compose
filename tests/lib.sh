@@ -17,11 +17,13 @@ sandbox_new() {
     export HOME="${SANDBOX}/home"
     export STUB_LOG="${SANDBOX}/stub.log"
     export STUB_DOCKER_PS="${SANDBOX}/docker-ps"
+    export STUB_DOCKER_LOGS="${SANDBOX}/docker-logs"
     export STUB_CURL_OUT="${SANDBOX}/curl-out"
     export STUB_CURL_FAIL=""
     mkdir -p "${HOME}/.local"
     : >"${STUB_LOG}"
     : >"${STUB_DOCKER_PS}"
+    : >"${STUB_DOCKER_LOGS}"
     : >"${STUB_CURL_OUT}"
     cp "${REPO_DIR}/vllm-serve.sh" "${SANDBOX}/vllm-serve.sh"
     cat >"${SANDBOX}/models.json" <<'JSON'
