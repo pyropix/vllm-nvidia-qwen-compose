@@ -215,8 +215,14 @@ cmd_status() {
     echo "Selected (${ENV_FILE})"
     printf "${fmt}" "Model" "${MODEL_ID:--}"
     printf "${fmt}" "Variant" "${MODEL_VARIANT:--}"
-    printf "${fmt}" "Draft" "${DRAFT_MODEL_ID:--}"
-    [[ -z "${MODEL_ID:-}" ]] || printf "${fmt}" "Download" "$(download_state "${MODEL_ID}")"
+    # Draft and Download both come from the registry, not from a possibly stale .env.vllm.
+    local draft="" download="-"
+    if [[ -n "${MODEL_ID:-}" ]]; then
+        draft="$(get_draft "${MODEL_ID}")"
+        download="$(download_state "${MODEL_ID}")"
+    fi
+    printf "${fmt}" "Draft" "${draft:--}"
+    printf "${fmt}" "Download" "${download}"
     echo ""
     echo "Running"
     local running=() svc entry model_id variant found

@@ -68,6 +68,30 @@ test_shared_draft_model_serves_both_model_ids() {
     assert_out_contains "Download   complete"
 }
 
+test_status_draft_comes_from_registry_not_stale_env() {
+    fake_complete_download
+    select_model nvidia/Qwen-A z-lab/Stale-Draft
+    serve status
+    assert_status 0
+    assert_out_contains "Draft      z-lab/Draft-A"
+    assert_out_contains "Download   complete"
+    [[ "${OUT}" != *"Stale-Draft"* ]] || fail "status shows the stale Draft model. Output: ${OUT}"
+}
+
+test_status_draft_placeholder_without_draft_model() {
+    select_model unsloth/Qwen-B z-lab/Stale-Draft
+    serve status
+    assert_out_contains "Draft      -"
+}
+
+test_status_placeholders_without_selected_model() {
+    sed -i -e 's|^MODEL_ID=.*|MODEL_ID=|' "${SANDBOX}/.env.vllm"
+    serve status
+    assert_status 0
+    assert_out_contains "Draft      -"
+    assert_out_contains "Download   -"
+}
+
 test_download_skips_draft_model_already_fetched() {
     fake_download z-lab/Draft-A
     select_model unsloth/Qwen-C z-lab/Draft-A
