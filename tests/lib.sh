@@ -105,7 +105,6 @@ fake_repo_dir() {
 }
 
 # Run vllm-serve.sh in the sandbox; sets OUT (stdout+stderr) and STATUS.
-# Stdin is empty unless the first arguments are `--stdin TEXT`.
 # run_script [--stdin INPUT] [--timeout SECS] ARGS...: run the sandbox script,
 # setting OUT and STATUS. --timeout closes stdin after INPUT (no trailing
 # newline) and kills the script after SECS, so an end-of-input loop fails the
