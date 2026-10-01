@@ -225,18 +225,22 @@ fake_download_as() {
     ln -s ../../blobs/w "${snapshot}/$2"
 }
 
-test_status_download_bin_weights_complete() {
+test_status_download_safetensors_weights_complete() {
     fake_download nvidia/Qwen-A
-    fake_download_as z-lab/Draft-A weights.bin
+    fake_download_as z-lab/Draft-A weights.safetensors
     run_script status
     assert_out_contains "Download   complete"
 }
 
-test_status_download_gguf_weights_complete() {
-    fake_download nvidia/Qwen-A
-    fake_download_as z-lab/Draft-A weights.gguf
-    run_script status
-    assert_out_contains "Download   complete"
+# Only safetensors is supported: no Model ID in the registry ships another format.
+test_status_download_unsupported_weight_format_incomplete() {
+    local ext
+    for ext in bin gguf pt pth ckpt onnx; do
+        fake_complete_download
+        fake_download_as z-lab/Draft-A "weights.${ext}"
+        run_script status
+        assert_out_contains "incomplete (missing: z-lab/Draft-A)"
+    done
 }
 
 test_status_download_without_weight_files_incomplete() {
@@ -249,22 +253,34 @@ test_status_download_without_weight_files_incomplete() {
     assert_out_contains "incomplete (missing: z-lab/Draft-A)"
 }
 
-test_status_download_missing_shard_in_bin_index() {
+test_status_download_all_shards_present_in_safetensors_index() {
     fake_complete_download
-    echo '{"weight_map":{"a":"model.safetensors","b":"pytorch_model-2.bin"}}' \
-        >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/pytorch_model.bin.index.json"
+    echo '{"weight_map":{"a":"model.safetensors"}}' \
+        >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/model.safetensors.index.json"
+    run_script status
+    assert_out_contains "Download   complete"
+}
+
+test_status_download_ignores_non_weight_index() {
+    fake_complete_download
+    echo '{"weight_map":{"a":"missing.bin"}}' \
+        >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/tokenizer.index.json"
+    run_script status
+    assert_out_contains "Download   complete"
+}
+
+# A weight index that cannot be read as a shard list makes the Download incomplete.
+assert_malformed_index_incomplete() {
+    fake_complete_download
+    printf '%s' "$1" >"$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1/model.safetensors.index.json"
     run_script status
     assert_out_contains "incomplete (missing: nvidia/Qwen-A)"
 }
 
-test_status_download_all_shards_present_in_bin_index() {
-    fake_complete_download
-    local snapshot
-    snapshot="$(fake_repo_dir nvidia/Qwen-A)/snapshots/rev1"
-    ln -s ../../blobs/w "${snapshot}/pytorch_model-1.bin"
-    echo '{"weight_map":{"a":"pytorch_model-1.bin"}}' >"${snapshot}/pytorch_model.bin.index.json"
-    run_script status
-    assert_out_contains "Download   complete"
-}
+test_status_download_index_not_json_incomplete() { assert_malformed_index_incomplete 'not json'; }
+test_status_download_index_without_weight_map_incomplete() { assert_malformed_index_incomplete '{}'; }
+test_status_download_index_empty_weight_map_incomplete() { assert_malformed_index_incomplete '{"weight_map":{}}'; }
+test_status_download_index_weight_map_not_object_incomplete() { assert_malformed_index_incomplete '{"weight_map":["model.safetensors"]}'; }
+test_status_download_index_non_string_shard_incomplete() { assert_malformed_index_incomplete '{"weight_map":{"a":1}}'; }
 
 run_tests

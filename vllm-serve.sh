@@ -64,7 +64,7 @@ check_registry_env() {
 
 # Succeed when a repo is fully present in the local HF cache (offline check).
 is_downloaded() {
-    local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard index ext link
+    local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard index link
     [[ -f "${repo_dir}/refs/main" ]] || return 1
     rev="$(<"${repo_dir}/refs/main")"
     snapshot="${repo_dir}/snapshots/${rev}"
@@ -76,18 +76,19 @@ is_downloaded() {
     while IFS= read -r link; do
         [[ ! -e "${repo_dir}/blobs/$(basename "$(readlink "${link}")").incomplete" ]] || return 1
     done < <(find "${snapshot}" -type l)
-    # Every shard listed in any weight index (*.index.json) must be present.
-    for index in "${snapshot}"/*.index.json; do
+    # Every shard listed in a safetensors weight index must be present. A malformed
+    # index (not JSON, or no non-empty weight_map of shard names) is incomplete.
+    for index in "${snapshot}"/*.safetensors.index.json; do
         [[ -f "${index}" ]] || continue
+        jq -e '.weight_map | type == "object" and length > 0 and all(.[]; type == "string")' \
+            "${index}" >/dev/null 2>&1 || return 1
         while IFS= read -r shard; do
             [[ -f "${snapshot}/${shard}" ]] || return 1
-        done < <(jq -r '.weight_map[]?' "${index}" | sort -u)
+        done < <(jq -r '.weight_map[]' "${index}" | sort -u)
     done
-    # At least one weights file, in any supported format.
-    for ext in safetensors bin gguf pt pth ckpt onnx; do
-        compgen -G "${snapshot}/*.${ext}" >/dev/null && return 0
-    done
-    return 1
+    # At least one safetensors file. Every Model ID and Draft model in the registry
+    # ships safetensors, so other weight formats are not supported.
+    compgen -G "${snapshot}/*.safetensors" >/dev/null
 }
 
 # Download module: what a Model ID needs and whether it is all present.
