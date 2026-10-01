@@ -38,14 +38,18 @@ running_vllm_services() {
   return 0
 }
 
+# Print one "label  value" row of the status table.
+status_row() {
+  printf "  %-10s %s\n" "$1" "$2"
+}
+
 cmd_status() {
   load_env
   registry_load
-  local fmt="  %-10s %s\n"
   echo ""
   echo "Selected (${ENV_FILE})"
-  printf "${fmt}" "Model" "${MODEL_ID:--}"
-  printf "${fmt}" "Variant" "${MODEL_VARIANT:--}"
+  status_row "Model" "${MODEL_ID:--}"
+  status_row "Variant" "${MODEL_VARIANT:--}"
   # Draft and Download both come from the registry, not from a possibly stale .env.vllm.
   local draft="" context="" download="-"
   if [[ -n "${MODEL_ID:-}" ]]; then
@@ -53,9 +57,9 @@ cmd_status() {
     context="$(registry_context "${MODEL_ID}")"
     download="$(download_state "${MODEL_ID}")"
   fi
-  printf "${fmt}" "Draft" "${draft:--}"
-  printf "${fmt}" "Context" "${context:--}"
-  printf "${fmt}" "Download" "${download}"
+  status_row "Draft" "${draft:--}"
+  status_row "Context" "${context:--}"
+  status_row "Download" "${download}"
   echo ""
   echo "Downloads (all Model IDs in ${MODELS_FILE})"
   local id
@@ -69,27 +73,29 @@ cmd_status() {
     running+=("${svc}")
   done < <(running_vllm_services)
   if (( ${#running[@]} == 0 )); then
-    printf "${fmt}" "Container" "none running"
+    status_row "Container" "none running"
     echo ""
     return
   fi
   for svc in "${running[@]}"; do
     owner="$(registry_lookup_service "${svc}")"
     if [[ -z "${owner}" ]]; then
-      printf "${fmt}" "Container" "${svc} (not in models.json)"
+      status_row "Container" "${svc} (not in models.json)"
       continue
     fi
     IFS=$'\t' read -r model_id variant <<<"${owner}"
-    printf "${fmt}" "Container" "${svc}"
-    printf "${fmt}" "Model" "${model_id}"
-    printf "${fmt}" "Variant" "${variant:--}"
-    printf "${fmt}" "Draft" "$(registry_draft "${model_id}")"
-    [[ "${model_id}" == "${MODEL_ID:-}" && "${variant}" == "${MODEL_VARIANT:-}" ]] \
-      && printf "${fmt}" "Selected" "yes" \
-      || printf "${fmt}" "Selected" "no (differs from selection)"
+    status_row "Container" "${svc}"
+    status_row "Model" "${model_id}"
+    status_row "Variant" "${variant:--}"
+    status_row "Draft" "$(registry_draft "${model_id}")"
+    if [[ "${model_id}" == "${MODEL_ID:-}" && "${variant}" == "${MODEL_VARIANT:-}" ]]; then
+      status_row "Selected" "yes"
+    else
+      status_row "Selected" "no (differs from selection)"
+    fi
   done
   # All variants share host port 8000, so one readiness line covers them.
-  printf "${fmt}" "Ready" "$(ready_summary)"
+  status_row "Ready" "$(ready_summary)"
   echo ""
 }
 
@@ -102,6 +108,7 @@ cmd_ready() {
       # Capture first: piping into sed would hide a jq failure.
       ids="$(served_model_ids <<<"${response}")" || return 1
       echo "vLLM is ready. Models:"
+      # shellcheck disable=SC2001 # prefixes every line; ${//} cannot anchor per line
       sed 's/^/  /' <<<"${ids}"
       return 0
     fi

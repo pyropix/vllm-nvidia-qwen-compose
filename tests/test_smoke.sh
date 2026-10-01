@@ -242,8 +242,8 @@ test_link_and_unlink() {
 
 test_compose_requires_context_window() {
   local total required
-  # shellcheck disable=SC2016 # literal compose syntax, not a shell expansion
   total="$(grep -c -- '--max-model-len' "${REPO_DIR}/docker-compose.yml")"
+  # shellcheck disable=SC2016 # literal compose syntax, not a shell expansion
   required="$(grep -c -- '--max-model-len "${MAX_MODEL_LEN:?.*select' "${REPO_DIR}/docker-compose.yml")"
   [[ "${total}" -gt 0 && "${total}" == "${required}" ]] || fail "not every --max-model-len requires MAX_MODEL_LEN with a select hint (${required}/${total})"
 }

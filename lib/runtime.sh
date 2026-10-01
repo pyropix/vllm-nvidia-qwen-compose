@@ -9,7 +9,7 @@ load_env() {
     echo "Copy .env.vllm.example to .env.vllm and set your HF_TOKEN first." >&2
     exit 1
   fi
-  # shellcheck source=.env.vllm
+  # shellcheck source=/dev/null # user-generated .env.vllm, not in the repo
   source "${ENV_FILE}"
 }
 
@@ -43,6 +43,7 @@ get_service() {
   local service
   service="$(registry_service "${model_id}" "${MODEL_VARIANT:-}")"
   if [[ -z "${service}" ]]; then
+    # shellcheck disable=SC2016 # quotes are literal text inside a double-quoted string
     echo "Error: ${MODELS_FILE} has no service for MODEL_ID '${model_id}'${MODEL_VARIANT:+ variant '${MODEL_VARIANT}'}." >&2
     exit 1
   fi
