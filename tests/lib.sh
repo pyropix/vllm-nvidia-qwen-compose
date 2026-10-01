@@ -76,15 +76,17 @@ sandbox_free() {
 
 # Put a fully downloaded repo into the fake HF cache.
 fake_download() {
-  local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}"
-  mkdir -p "${repo_dir}/refs" "${repo_dir}/snapshots/rev1" "${repo_dir}/blobs"
-  echo rev1 >"${repo_dir}/refs/main"
+  local repo_dir snapshot
+  repo_dir="$(fake_repo_dir "$1")"
+  snapshot="$(fake_snapshot_dir "$1")"
+  mkdir -p "${repo_dir}/refs" "${snapshot}" "${repo_dir}/blobs"
+  basename "${snapshot}" >"${repo_dir}/refs/main"
   echo weights >"${repo_dir}/blobs/w"
   echo '{}' >"${repo_dir}/blobs/config"
   echo '{}' >"${repo_dir}/blobs/tokenizer"
-  ln -s ../../blobs/w "${repo_dir}/snapshots/rev1/model.safetensors"
-  ln -s ../../blobs/config "${repo_dir}/snapshots/rev1/config.json"
-  ln -s ../../blobs/tokenizer "${repo_dir}/snapshots/rev1/tokenizer.json"
+  ln -s ../../blobs/w "${snapshot}/model.safetensors"
+  ln -s ../../blobs/config "${snapshot}/config.json"
+  ln -s ../../blobs/tokenizer "${snapshot}/tokenizer.json"
 }
 
 # Fully download nvidia/Qwen-A and its Draft model.
