@@ -55,12 +55,9 @@ load_env() {
     source "${ENV_FILE}"
 }
 
-get_service() {
-    local model_id="${MODEL_ID:-}"
-    if [[ -z "${model_id}" ]]; then
-        echo "Error: MODEL_ID is not set. Run '$(basename "$0") select' first." >&2
-        exit 1
-    fi
+# Print the docker-compose service name for a Model ID and optional variant.
+derive_service() {
+    local model_id="$1" variant="${2:-}"
     # Derive the docker-compose service/profile name from the Hugging Face
     # MODEL_ID: map the org prefix (before the first '/') to a short tag
     # (nvidia -> nv, unsloth -> us), strip the org, lowercase the leading
@@ -87,7 +84,18 @@ get_service() {
     # selects a parallel service for the same model, e.g.
     #   nvidia/Qwen3.8-27B-NVFP4 + variant instanttensor
     #     -> vllm-nv-qwen3.8-27B-NVFP4-instanttensor
-    [[ -n "${MODEL_VARIANT:-}" ]] && service="${service}-${MODEL_VARIANT}"
+    [[ -n "${variant}" ]] && service="${service}-${variant}"
+    echo "${service}"
+}
+
+get_service() {
+    local model_id="${MODEL_ID:-}"
+    if [[ -z "${model_id}" ]]; then
+        echo "Error: MODEL_ID is not set. Run '$(basename "$0") select' first." >&2
+        exit 1
+    fi
+    local service
+    service="$(derive_service "${model_id}" "${MODEL_VARIANT:-}")"
     # Guard against a derived name that has no matching compose service.
     local escaped="${service//./\\.}"
     if ! grep -Eq "^[[:space:]]+${escaped}:" "${SCRIPT_DIR}/docker-compose.yml"; then
@@ -130,6 +138,53 @@ cmd_select() {
     set_env_var MODEL_VARIANT "${variant}"
     set_env_var DRAFT_MODEL_ID "${draft}"
     echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant} DRAFT_MODEL_ID=${draft}"
+}
+
+cmd_status() {
+    load_env
+    load_models
+    local fmt="  %-10s %s\n"
+    echo ""
+    echo "Selected (${ENV_FILE})"
+    printf "${fmt}" "Model" "${MODEL_ID:--}"
+    printf "${fmt}" "Variant" "${MODEL_VARIANT:--}"
+    printf "${fmt}" "Draft" "${DRAFT_MODEL_ID:--}"
+    echo ""
+    echo "Running"
+    local running=() svc entry model_id variant found
+    while IFS= read -r svc; do
+        [[ "${svc}" == vllm-* ]] && running+=("${svc}")
+    done < <(docker compose \
+        --project-directory "${SCRIPT_DIR}" \
+        --env-file "${ENV_FILE}" \
+        --profile '*' \
+        ps --status running --format '{{.Service}}')
+    if (( ${#running[@]} == 0 )); then
+        printf "${fmt}" "Container" "none running"
+        echo ""
+        return
+    fi
+    for svc in "${running[@]}"; do
+        found=""
+        for entry in "${models[@]}"; do
+            model_id="${entry%%:*}"
+            variant=""
+            [[ "${entry}" == *:* ]] && variant="${entry#*:}"
+            if [[ "$(derive_service "${model_id}" "${variant}")" == "${svc}" ]]; then
+                found=1
+                printf "${fmt}" "Container" "${svc}"
+                printf "${fmt}" "Model" "${model_id}"
+                printf "${fmt}" "Variant" "${variant:--}"
+                printf "${fmt}" "Draft" "$(get_draft "${model_id}")"
+                [[ "${model_id}" == "${MODEL_ID:-}" && "${variant}" == "${MODEL_VARIANT:-}" ]] \
+                    && printf "${fmt}" "Selected" "yes" \
+                    || printf "${fmt}" "Selected" "no (differs from selection)"
+                break
+            fi
+        done
+        [[ -n "${found}" ]] || printf "${fmt}" "Container" "${svc} (not in models.json)"
+    done
+    echo ""
 }
 
 cmd_download() {
@@ -241,8 +296,9 @@ cmd_unlink() {
 }
 
 usage() {
-    echo "Usage: $(basename "$0") [select|download|start|logs|stop|pi|link|unlink]"
+    echo "Usage: $(basename "$0") [status|select|download|start|logs|stop|pi|link|unlink]"
     echo ""
+    echo "  status    Show selected model/variant/Draft and the running container"
     echo "  select    Pick model variant and write to .env.vllm"
     echo "  download  Login to HF and download model weights (and Draft model)"
     echo "  start     Pull image and start the vLLM container"
@@ -256,7 +312,7 @@ usage() {
 }
 
 menu() {
-    local actions=("select model" "login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
+    local actions=("show status" "select model""login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
     while true; do
         echo ""
         echo "vLLM management — choose an action:"
@@ -266,6 +322,7 @@ menu() {
                 return
             fi
             case "${action}" in
+                "show status")    cmd_status ;;
                 "select model")   cmd_select ;;
                 "login & download model") cmd_download ;;
                 "start vllm")     cmd_start || true ;;
@@ -282,6 +339,7 @@ menu() {
 }
 
 case "${1:-}" in
+    status)         cmd_status ;;
     select)         cmd_select ;;
     download)       cmd_download ;;
     start)          cmd_start ;;
