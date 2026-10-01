@@ -47,15 +47,18 @@ check_draft() {
 
 # Succeed when a repo is fully present in the local HF cache (offline check).
 is_downloaded() {
-    local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard
+    local repo_dir="${HOME}/.cache/huggingface/hub/models--${1//\//--}" rev snapshot shard link
     [[ -f "${repo_dir}/refs/main" ]] || return 1
     rev="$(<"${repo_dir}/refs/main")"
     snapshot="${repo_dir}/snapshots/${rev}"
     [[ -d "${snapshot}" ]] || return 1
-    # Interrupted downloads leave *.incomplete blobs behind.
-    compgen -G "${repo_dir}/blobs/*.incomplete" >/dev/null && return 1
     # Every symlinked file must resolve to a blob.
     [[ -z "$(find -L "${snapshot}" -type l)" ]] || return 1
+    # An interrupted download leaves <blob>.incomplete behind. Only one for a blob
+    # this revision links to counts; stale ones from other revisions are ignored.
+    while IFS= read -r link; do
+        [[ ! -e "${repo_dir}/blobs/$(basename "$(readlink "${link}")").incomplete" ]] || return 1
+    done < <(find "${snapshot}" -type l)
     # Every shard listed in the weight index must be present.
     if [[ -f "${snapshot}/model.safetensors.index.json" ]]; then
         while IFS= read -r shard; do
