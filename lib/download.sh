@@ -62,11 +62,10 @@ download_repos() {
 
 # Print the repos of a Model ID's Download that are not fully present (one per line).
 download_missing() {
-  local repo kind=model
-  while IFS= read -r repo; do
-    is_downloaded "${repo}" "${kind}" || echo "${repo}"
-    kind=draft  # download_repos prints the Model ID first, then its Draft model.
-  done < <(download_repos "$1")
+  local draft
+  is_downloaded "$1" model || echo "$1"
+  draft="$(registry_draft "$1")"
+  [[ -z "${draft}" ]] || is_downloaded "${draft}" draft || echo "${draft}"
 }
 
 # Fail when the Download of the selected Model ID (weights plus Draft model) is incomplete.
