@@ -5,7 +5,7 @@
 - Every repo (Model ID and Draft model): `config.json` and at least one `*.safetensors`.
 - Model ID repos only: `tokenizer.json` or `tokenizer_config.json`.
 
-A file that was never fetched leaves no snapshot symlink and no partial blob, so the other checks can't see it. The fixed set catches the files vLLM can't start without. Every shard listed in a safetensors weight index must likewise be a snapshot symlink resolved to a blob of the repo.
+A file that was never fetched leaves no snapshot symlink and no partial blob, so the other checks can't see it. The fixed set catches the files vLLM can't start without. Every shard listed in a safetensors weight index, and the at-least-one `*.safetensors` file, must likewise be a snapshot symlink resolved to a blob of the repo.
 
 A Draft model uses its target model's tokenizer and ships none of its own: `z-lab/Qwen3.8-27B-DFlash2` and `Doopeworld/Qwen3.8-27B-DSpark-vLLM` have only `config.json` and `model.safetensors`. So `download_missing` passes `draft` to `is_downloaded` for the Draft model, which skips the tokenizer check. The registry was checked once, by hand, on 2026-10-01 against the Hugging Face Hub file list of each repo in `models.json`: every Model ID ships `config.json` and a tokenizer; every Draft model ships `config.json` and safetensors only. This check is not repeated by any script or test.
 
