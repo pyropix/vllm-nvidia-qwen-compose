@@ -9,6 +9,11 @@ assert_env() {
     grep -qx "$1" "${SANDBOX}/.env.vllm" || fail ".env.vllm lacks '$1'. Env: $(cat "${SANDBOX}/.env.vllm")"
 }
 
+# Context window the sandbox registry gives Model ID $1.
+fixture_context() {
+    jq -r --arg id "$1" '.[] | select(.id == $id) | .context' "${SANDBOX}/models.json"
+}
+
 # Sandbox registry entries, in menu order: Qwen-A, Qwen-A:fast, Qwen-B, Qwen-C.
 test_select_model_without_variant() {
     select_model nvidia/Qwen-A
@@ -17,7 +22,7 @@ test_select_model_without_variant() {
     assert_env "MODEL_ID=unsloth/Qwen-B"
     assert_env "MODEL_VARIANT="
     assert_env "DRAFT_MODEL_ID="
-    assert_env "MAX_MODEL_LEN=1048576"
+    assert_env "MAX_MODEL_LEN=$(fixture_context unsloth/Qwen-B)"
 }
 
 test_select_model_with_variant() {
@@ -27,7 +32,7 @@ test_select_model_with_variant() {
     assert_env "MODEL_ID=nvidia/Qwen-A"
     assert_env "MODEL_VARIANT=fast"
     assert_env "DRAFT_MODEL_ID=z-lab/Draft-A"
-    assert_env "MAX_MODEL_LEN=262144"
+    assert_env "MAX_MODEL_LEN=$(fixture_context nvidia/Qwen-A)"
 }
 
 test_select_invalid_choice_reprompts() {
