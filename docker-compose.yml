@@ -107,6 +107,31 @@ services:
       --tool-call-parser qwen3_xml
       --enable-auto-tool-choice
 
+  vllm-nv-qwen3.8-27B-NVFP4-instanttensor:
+    profiles: [vllm-nv-qwen3.8-27B-NVFP4-instanttensor]
+    container_name: vllm-nv-qwen3.8-27B-NVFP4-instanttensor
+    <<: *defaults
+    image: eugr/spark-vllm:latest
+    command: >
+      vllm serve ${MODEL_ID}
+      --host 0.0.0.0
+      --port 8000
+      --tensor-parallel-size "1"
+      --trust-remote-code
+      --kv-cache-dtype fp8
+      --gpu-memory-utilization "0.70"
+      --max-model-len "262144"
+      --max-num-seqs "8"
+      --max-num-batched-tokens "16384"
+      --enable-chunked-prefill
+      --enable-prefix-caching
+      --async-scheduling
+      --speculative-config '{"method":"dflash","model":"z-lab/Qwen3.8-27B-DFlash2","num_speculative_tokens":8,"draft_tensor_parallel_size":1}'
+      --load-format instanttensor
+      --reasoning-parser qwen3
+      --tool-call-parser qwen3_xml
+      --enable-auto-tool-choice
+
   vllm-us-qwen3.8-27B-NVFP4:
     profiles: [vllm-us-qwen3.8-27B-NVFP4]
     container_name: vllm-us-qwen3.8-27B-NVFP4

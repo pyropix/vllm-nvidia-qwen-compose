@@ -48,13 +48,14 @@ curl http://localhost:8000/v1/chat/completions \
 
 ## Models
 
-The list of models offered by `./vllm-serve.sh select` is defined in [`models.conf`](models.conf) — one `MODEL_ID` per line. To add a new variant, add a line there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
+The list of models offered by `./vllm-serve.sh select` is defined in [`models.conf`](models.conf) — one `MODEL_ID` per line (optionally `MODEL_ID:variant` to select a parallel service for the same model). To add a new variant, add a line there (and, if it uses a new prefix, a matching profile in `docker-compose.yml`).
 
 | Variant                      | Hugging Face                                                                          | Notes                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | **Qwen3.6** 35B-A3B (nvidia) | [nvidia/Qwen3.6-35B-A3B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-35B-A3B-NVFP4)   | triton speculative backend, `--async-scheduling`   |
 | **Qwen3.6** 27B (nvidia)     | [nvidia/Qwen3.6-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.6-27B-NVFP4)           | `marlin` MoE backend, `qwen3_coder` tool parser    |
 | **Qwen3.8** 27B (nvidia)     | [nvidia/Qwen3.8-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.8-27B-NVFP4)           | DFlash2 speculative decoding, 256K context         |
+| **Qwen3.8** 27B (nvidia, `:instanttensor`) | [nvidia/Qwen3.8-27B-NVFP4](https://huggingface.co/nvidia/Qwen3.8-27B-NVFP4) | same as above on `eugr/spark-vllm`, `instanttensor` loader |
 | **Qwen3.8** 27B (unsloth)    | [unsloth/Qwen3.8-27B-NVFP4](https://huggingface.co/unsloth/Qwen3.8-27B-NVFP4)         | DSpark speculative decoding, 1M-token YaRN context |
 
 ## Observability

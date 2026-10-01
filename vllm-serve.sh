@@ -60,6 +60,11 @@ get_service() {
     local first="${name:0:1}"
     first="${first,,}"
     local service="vllm-${tag}-${first}${name:1}"
+    # An optional MODEL_VARIANT (from 'MODEL_ID:variant' in models.conf)
+    # selects a parallel service for the same model, e.g.
+    #   nvidia/Qwen3.8-27B-NVFP4:instanttensor
+    #     -> vllm-nv-qwen3.8-27B-NVFP4-instanttensor
+    [[ -n "${MODEL_VARIANT:-}" ]] && service="${service}-${MODEL_VARIANT}"
     # Guard against a derived name that has no matching compose service.
     local escaped="${service//./\\.}"
     if ! grep -Eq "^[[:space:]]+${escaped}:" "${SCRIPT_DIR}/docker-compose.yml"; then
@@ -74,23 +79,32 @@ get_profile() {
     get_service
 }
 
+set_env_var() {
+    local key="$1" value="$2"
+    if grep -q "^${key}=" "${ENV_FILE}"; then
+        sed -i "s|^${key}=.*|${key}=${value}|" "${ENV_FILE}"
+    else
+        echo "${key}=${value}" >> "${ENV_FILE}"
+    fi
+}
+
 cmd_select() {
     load_env
     load_models
     echo ""
     echo "Select the model to download and serve:"
     echo ""
-    local model_id
-    select model_id in "${models[@]}"; do
-        [[ -n "${model_id}" ]] && break
+    local entry model_id variant=""
+    select entry in "${models[@]}"; do
+        [[ -n "${entry}" ]] && break
         echo "Invalid selection. Enter a number between 1 and ${#models[@]}."
     done
-    if grep -q "^MODEL_ID=" "${ENV_FILE}"; then
-        sed -i "s|^MODEL_ID=.*|MODEL_ID=${model_id}|" "${ENV_FILE}"
-    else
-        echo "MODEL_ID=${model_id}" >> "${ENV_FILE}"
-    fi
-    echo "Updated ${ENV_FILE} with MODEL_ID=${model_id}"
+    # Entries are 'MODEL_ID' or 'MODEL_ID:variant'.
+    model_id="${entry%%:*}"
+    [[ "${entry}" == *:* ]] && variant="${entry#*:}"
+    set_env_var MODEL_ID "${model_id}"
+    set_env_var MODEL_VARIANT "${variant}"
+    echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant}"
 }
 
 cmd_download() {
