@@ -66,14 +66,14 @@ test_reset_refused_while_vllm_runs() {
 }
 
 test_reset_aborts_without_confirmation() {
-  run_script --stdin "n" reset-metrics
+  run_script --stdin $'n\n' reset-metrics
   assert_status 1
   assert_out_contains "Aborted"
   assert_log_lacks "--volumes"
 }
 
 test_reset_with_confirmation_deletes_volumes() {
-  run_script --stdin "y" reset-metrics
+  run_script --stdin $'y\n' reset-metrics
   assert_status 0
   assert_log_contains "down --volumes --remove-orphans"
 }
