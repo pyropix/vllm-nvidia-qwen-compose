@@ -140,6 +140,13 @@ cmd_select() {
     echo "Updated ${ENV_FILE} with MODEL_ID=${model_id} MODEL_VARIANT=${variant} DRAFT_MODEL_ID=${draft}"
 }
 
+VLLM_MODELS_URL="http://localhost:8000/v1/models"
+
+# Print the GET /v1/models response; fails while vLLM does not answer.
+query_models() {
+    curl -fsS --max-time 5 "${VLLM_MODELS_URL}" 2>/dev/null
+}
+
 cmd_status() {
     load_env
     load_models
@@ -184,7 +191,33 @@ cmd_status() {
         done
         [[ -n "${found}" ]] || printf "${fmt}" "Container" "${svc} (not in models.json)"
     done
+    # All variants share host port 8000, so one readiness line covers them.
+    local response
+    if response="$(query_models)"; then
+        printf "${fmt}" "Ready" "yes ($(jq -r '[.data[].id] | join(", ")' <<<"${response}"))"
+    else
+        printf "${fmt}" "Ready" "no (still starting?)"
+    fi
     echo ""
+}
+
+# Check whether vLLM answers GET /v1/models; with --wait, poll until it does.
+cmd_ready() {
+    local wait="" response
+    [[ "${1:-}" == "--wait" ]] && wait=1
+    while true; do
+        if response="$(query_models)"; then
+            echo "vLLM is ready. Models:"
+            jq -r '.data[].id | "  " + .' <<<"${response}"
+            return 0
+        fi
+        if [[ -z "${wait}" ]]; then
+            echo "vLLM is not ready (no answer from ${VLLM_MODELS_URL})." >&2
+            return 1
+        fi
+        echo "Waiting for vLLM... (Ctrl+C to abort)"
+        sleep 5
+    done
 }
 
 cmd_download() {
@@ -296,13 +329,14 @@ cmd_unlink() {
 }
 
 usage() {
-    echo "Usage: $(basename "$0") [status|select|download|start|logs|stop|pi|link|unlink]"
+    echo "Usage: $(basename "$0") [status|select|download|start|logs|ready|stop|pi|link|unlink]"
     echo ""
     echo "  status    Show selected model/variant/Draft and the running container"
     echo "  select    Pick model variant and write to .env.vllm"
     echo "  download  Login to HF and download model weights (and Draft model)"
     echo "  start     Pull image and start the vLLM container"
     echo "  logs      Tail the running container logs"
+    echo "  ready     Check if vLLM answers GET /v1/models (--wait: poll until it does)"
     echo "  stop      Stop and remove the container"
     echo "  pi        Launch pi agent pointed at the local vLLM server"
     echo "  link      Symlink this script as 'vllm-serve' in ~/.local/bin"
@@ -312,7 +346,7 @@ usage() {
 }
 
 menu() {
-    local actions=("show status" "select model" "login & download model" "start vllm" "show logs" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
+    local actions=("show status" "select model" "login & download model" "start vllm" "show logs" "check if vllm is ready" "stop vllm" "start pi agent" "create 'vllm-serve' symlink" "remove 'vllm-serve' symlink")
     cmd_status
     while true; do
         echo ""
@@ -328,6 +362,7 @@ menu() {
                 "login & download model") cmd_download ;;
                 "start vllm")     cmd_start || true ;;
                 "show logs")      cmd_logs ;;
+                "check if vllm is ready") cmd_ready || true ;;
                 "stop vllm")      cmd_stop ;;
                 "start pi agent") cmd_pi ;;
                 "create 'vllm-serve' symlink") cmd_link ;;
@@ -341,10 +376,11 @@ menu() {
 
 case "${1:-}" in
     status)         cmd_status ;;
-    select)         cmd_select ;;
+    select)        cmd_select ;;
     download)       cmd_download ;;
     start)          cmd_start ;;
     logs)           cmd_logs ;;
+    ready)          cmd_ready "${2:-}" ;;
     stop)           cmd_stop ;;
     pi)             cmd_pi ;;
     link)           cmd_link ;;
