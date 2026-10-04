@@ -1,25 +1,25 @@
 # vLLM NVidia Qwen3.x Compose
 
-Runs Qwen3.x models as an OpenAI-compatible inference server using [vLLM](https://github.com/vllm-project/vllm) on DGX Spark. The selected model variant is downloaded from Hugging Face and served locally with GPU acceleration (NVIDIA, ARM64/aarch64).
+Runs Qwen3.x models as an OpenAI-compatible inference server with [vLLM](https://github.com/vllm-project/vllm) on DGX Spark (NVIDIA GPU, ARM64/aarch64). `./vllm-serve.sh` downloads the selected model variant from Hugging Face and serves it on the local GPU.
 
 ## Prerequisites
 
 - Docker with the NVIDIA Container Toolkit configured
-- NVIDIA GPU, tested with GB10 DGX Spark platform
+- An NVIDIA GPU. The project is tested on the GB10 DGX Spark platform.
 - A Hugging Face account with access to the model
-- Hugging Face CLI (`hf`) installed and authenticated (see below)
+- The Hugging Face CLI (`hf`), installed and authenticated (see below)
 
 ## Setup
 
-1. Copy `.env.vllm.example` to `.env.vllm` and set your `HF_TOKEN` for downloading model weights.
-2. Install the Hugging Face CLI (one-shot; run without args for an interactive menu):
+1. Copy `.env.vllm.example` to `.env.vllm` and set your `HF_TOKEN` so the script can download model weights.
+2. Install the Hugging Face CLI. Run `./setup-cli.sh` without arguments for an interactive menu.
 
    ```bash
    ./setup-cli.sh hf-install
    ```
 
-   Authentication happens later via `./vllm-serve.sh download` (runs `hf auth login`).
-3. Pick a model variant and start the server (run `./vllm-serve.sh` without args for an interactive menu):
+   You log in later, when `./vllm-serve.sh download` runs `hf auth login`.
+3. Pick a model variant and start the server. Run `./vllm-serve.sh` without arguments for an interactive menu.
 
    ```bash
    ./vllm-serve.sh download  # download model weights
@@ -28,7 +28,7 @@ Runs Qwen3.x models as an OpenAI-compatible inference server using [vLLM](https:
 
 ## Configuration
 
-The service configuration lives in `docker-compose.yml`. Each `MODEL_ID` in `models.json` has its own compose service/profile prefixed `vllm-` (launch flags and per-model differences: [docs/profiles.md](docs/profiles.md)). The container listens on port `8000` and exposes an OpenAI-compatible API.
+`docker-compose.yml` holds the service configuration. Each `MODEL_ID` in `models.json` has its own compose service and profile, prefixed `vllm-`. [docs/profiles.md](docs/profiles.md) lists the launch flags and per-model differences. The container listens on port `8000` and serves an OpenAI-compatible API.
 
 ```bash
 curl http://localhost:8000/v1/models
@@ -44,11 +44,20 @@ curl http://localhost:8000/v1/chat/completions \
   }'
 ```
 
-`./vllm-serve.sh pi` launches the pi agent against the local server (or run `pi --model ${MODEL_ID}` directly).
+`./vllm-serve.sh pi` starts the pi agent against the local server. You can also run `pi --model ${MODEL_ID}` directly.
 
 ## Models
 
-The list of models offered by `./vllm-serve.sh select` is defined in [`models.json`](models.json) — one entry per `id`, with its compose `service` name, a `context` window in tokens, optional `variants` (`{"name", "service"}` objects: parallel services for the same model) and an optional `draft` model for speculative decoding. `select` writes `MODEL_ID`, `MODEL_VARIANT`, `DRAFT_MODEL_ID` and `MAX_MODEL_LEN` to `.env.vllm` (compose passes `MAX_MODEL_LEN` as `--max-model-len`, and the pi extension reads `context` for its `contextWindow`), and `download` fetches the draft model too. Reading the file needs `jq`. To add a new model or variant, add an entry there, including its `service` and `context`, plus a matching service/profile in `docker-compose.yml`.
+[`models.json`](models.json) defines the models that `./vllm-serve.sh select` offers, one entry per `id`. Each entry has:
+
+- `service`, the compose service name.
+- `context`, the context window in tokens.
+- Optional `variants`, a list of `{"name", "service"}` objects. Each variant is a separate service for the same model.
+- An optional `draft` model for speculative decoding.
+
+`select` writes `MODEL_ID`, `MODEL_VARIANT`, `DRAFT_MODEL_ID` and `MAX_MODEL_LEN` to `.env.vllm`. Compose passes `MAX_MODEL_LEN` as `--max-model-len`, and the pi extension reads `context` for its `contextWindow`. `download` also fetches the draft model. The script needs `jq` to read `models.json`.
+
+To add a model or variant, add an entry with its `service` and `context` to `models.json`, and add a matching service and profile to `docker-compose.yml`.
 
 | Variant                      | Hugging Face                                                                          | Notes                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------- |
@@ -60,12 +69,14 @@ The list of models offered by `./vllm-serve.sh select` is defined in [`models.js
 
 ## Observability
 
-`docker-compose.yml` starts `prometheus` and `grafana` alongside whichever vLLM profile is selected (based on vLLM's [Prometheus/Grafana example](https://github.com/vllm-project/vllm/tree/main/examples/observability/prometheus_grafana)):
+`docker-compose.yml` starts `prometheus` and `grafana` with every vLLM profile. The setup follows vLLM's [Prometheus/Grafana example](https://github.com/vllm-project/vllm/tree/main/examples/observability/prometheus_grafana).
 
-- Prometheus: `http://localhost:9090` (scrapes `localhost:8000/metrics`).
-- Grafana: `http://localhost:3000` (default login `admin`/`admin`), dashboards auto-provisioned from `monitoring/` — no manual setup.
+- Prometheus runs at `http://localhost:9090` and scrapes `localhost:8000/metrics`.
+- Grafana runs at `http://localhost:3000` with the default login `admin`/`admin`. It loads its dashboards from `monitoring/`, so you don't need to set anything up.
 
-Metrics history is kept in the Docker volumes `vllm-prometheus-data` and `vllm-grafana-data` (Prometheus keeps 15 days, capped at 2 GB). It survives `./vllm-serve.sh stop`, model switches and restarts; `stop` leaves Prometheus and Grafana running so a finished Run stays browsable (`stop --all` stops them too). Every `start` begins a new **Run**, labelled `run` (start time, Model ID and Variant), and the dashboards have a **Run** selector so you can overlay Runs to compare them. Delete all history with `./vllm-serve.sh reset-metrics`.
+The Docker volumes `vllm-prometheus-data` and `vllm-grafana-data` hold the metrics history. Prometheus keeps 15 days, up to 2 GB. The history survives `./vllm-serve.sh stop`, model switches and restarts. `stop` leaves Prometheus and Grafana running, so you can still browse a finished Run. `stop --all` stops them too.
+
+Every `start` begins a new Run. Its `run` label holds the start time, Model ID and Variant. The dashboards have a Run selector, so you can overlay Runs to compare them. `./vllm-serve.sh reset-metrics` deletes all history.
 
 ## License
 
