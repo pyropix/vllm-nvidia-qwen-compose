@@ -390,6 +390,24 @@ assert_only_safetensors_incomplete() {
 test_status_download_only_safetensors_regular_file_incomplete() { assert_only_safetensors_incomplete regular-file; }
 test_status_download_only_safetensors_link_outside_blobs_incomplete() { assert_only_safetensors_incomplete outside-link; }
 
+# A pruned/deduplicated cache turns each repo blob into a symlink into a shared
+# store outside the repo; the snapshot link still points at a repo blob, so the
+# Download is complete.
+test_status_download_blobs_linked_to_shared_store_complete() {
+  fake_complete_download
+  local repo blob shared="${HOME}/.cache/huggingface/hub/blobs/ab"
+  mkdir -p "${shared}"
+  for repo in nvidia/Qwen-A z-lab/Draft-A; do
+    for blob in "$(fake_repo_dir "${repo}")"/blobs/*; do
+      mv "${blob}" "${shared}/${repo//\//-}-${blob##*/}"
+      ln -s "../../blobs/ab/${repo//\//-}-${blob##*/}" "${blob}"
+    done
+  done
+  run_script status
+  assert_status 0
+  assert_out_contains "Download   complete"
+}
+
 # One blob-backed safetensors file is enough, even next to a regular one (#45).
 test_status_download_only_safetensors_mixed_with_regular_file_complete() {
   fake_complete_download

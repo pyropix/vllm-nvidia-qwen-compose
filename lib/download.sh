@@ -3,11 +3,16 @@
 # Sourced by vllm-serve.sh.
 require_defined ENV_FILE load_env check_registry_env registry_draft || return 1
 
-# is_cached_file <path> <blobs_dir>: succeed when <path> is a symlink that
-# resolves to an existing regular file inside <blobs_dir>.
+# is_cached_file <path> <blobs_dir>: succeed when <path> is a symlink to an entry
+# of <blobs_dir> that resolves to an existing regular file. Only the link's own
+# target must sit in <blobs_dir>: a pruned cache may turn that blob into a
+# symlink to a shared store elsewhere.
 is_cached_file() {
+  local target
   [[ -L "$1" && -f "$1" ]] || return 1
-  [[ "$(realpath "$1")" == "$(realpath "$2")"/* ]]
+  target="$(readlink "$1")"
+  [[ "${target}" == /* ]] || target="$(dirname "$1")/${target}"
+  [[ "$(realpath "$(dirname "${target}")")" == "$(realpath "$2")" ]]
 }
 
 # Succeed when a repo is fully present in the local HF cache (offline check).
