@@ -9,7 +9,10 @@ x-defaults: &defaults
     - ~/.cache/huggingface:/root/.cache/huggingface
     - ~/.cache/vllm:/root/.cache/vllm
     - ./fix-qwen3.6-chat-template/chat_template.jinja:/root/chat_template.jinja:ro
-
+    # Persist JIT/autotune caches across container recreation
+    - ~/.cache/flashinfer:/root/.cache/flashinfer
+    - ~/.cache/triton:/root/.triton
+    - ~/.cache/torchinductor:/tmp/torchinductor_root
   env_file:
     - .env.vllm
   environment:
